@@ -1,0 +1,315 @@
+.page {
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+/* User Card */
+.userCard {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--color-border-light);
+}
+
+.avatarSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  flex: 1;
+}
+
+.userName {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.userMeta {
+  display: flex;
+  gap: var(--space-5);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.userMeta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  color: var(--color-primary);
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.statItem {
+  text-align: center;
+}
+
+.statNumber {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+.statLabel {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border-light);
+}
+
+.tab:hover {
+  border-color: var(--color-border);
+}
+
+.tabActive {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: rgba(229, 168, 75, 0.08);
+}
+
+/* Content */
+.content {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-light);
+}
+
+/* List */
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.listItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border-light);
+  gap: var(--space-4);
+}
+
+.listItem:last-child {
+  border-bottom: none;
+}
+
+.itemInfo {
+  flex: 1;
+}
+
+.itemInfo h4 {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--color-text);
+  margin: var(--space-2) 0;
+}
+
+.itemType {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: var(--color-border-light);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+}
+
+.itemMeta {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.itemPrice {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.status {
+  font-size: var(--text-sm);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  color: white;
+  font-weight: 500;
+}
+
+.statusSold {
+  background: var(--color-text-muted);
+}
+
+.itemTag {
+  font-size: var(--text-sm);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(229, 168, 75, 0.12);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.itemActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--color-text-secondary);
+  background: var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+
+.actionBtn:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.danger:hover {
+  background: var(--color-error);
+  color: white;
+}
+
+.viewBtn {
+  padding: 10px 20px;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-primary);
+  background: rgba(229, 168, 75, 0.1);
+  border-radius: var(--radius-lg);
+}
+
+.viewBtn:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.transactionType {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.typeBuy {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--color-info);
+}
+
+.typeSell {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--color-success);
+}
+
+.ratingInfo {
+  text-align: right;
+}
+
+.stars {
+  color: var(--color-primary);
+  font-size: var(--text-base);
+  margin-bottom: var(--space-1);
+}
+
+.comment {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.reviewContent {
+  font-size: var(--text-base);
+  color: var(--color-text);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .avatarSection {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .userMeta {
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: center;
+  }
+
+  .tabs {
+    justify-content: center;
+  }
+
+  .listItem {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .itemActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .ratingInfo {
+    text-align: left;
+  }
+}
