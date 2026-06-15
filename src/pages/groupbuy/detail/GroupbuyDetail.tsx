@@ -1,0 +1,179 @@
+import { getGroupBuyById } from '@/mocks/groupbuy'
+import { PaymentModal } from '@/components/base/PaymentModal'
+import { useToast } from '@/components/base/Toast'
+import { Breadcrumb } from '@/components/base/Breadcrumb'
+
+export function GroupbuyDetail() {
+  const { id } = useParams()
+  const [isJoined, setIsJoined] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const { showToast } = useToast()
+
+  const groupBuy = getGroupBuyById(id || '')
+
+  if (!groupBuy) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center pt-20">
+        <div className="text-center">
+          <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-background-200 rounded-2xl">
+            <i className="ri-emotion-sad-line text-3xl text-secondary-400"></i>
+          </div>
+          <p className="text-foreground-500 font-medium">拼团不存在或已被删除</p>
+          <Link to="/groupbuy" className="inline-flex items-center gap-1 text-sm text-primary-500 hover:text-primary-600 mt-3 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-all duration-200">
+            <i className="ri-arrow-left-s-line"></i>返回列表
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const isCompleted = groupBuy.status === 'completed'
+  const isEnded = groupBuy.status === 'ended'
+  const isOngoing = groupBuy.status === 'ongoing'
+  const progress = (groupBuy.currentMembers / groupBuy.minMembers) * 100
+  const savedAmount = groupBuy.originalPrice - groupBuy.groupPrice
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/groupbuy/${groupBuy.id}`)
+      showToast('链接已复制到剪贴板', 'success')
+    } catch {
+      showToast('复制失败', 'error')
+    }
+  }
+
+  const handleJoin = () => {
+    setIsJoined(!isJoined)
+    showToast(isJoined ? '已取消参团' : '已报名参团', isJoined ? 'info' : 'success')
+  }
+
+  return (
+    <div className="min-h-screen pt-20 pb-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* 面包屑 */}
+        <Breadcrumb items={[
+          { label: '拼团团购', to: '/groupbuy' },
+          { label: groupBuy.title.slice(0, 20) + (groupBuy.title.length > 20 ? '...' : '') },
+        ]} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* 左侧图片 */}
+          <div className="relative aspect-4/3 overflow-hidden rounded-xl bg-background-100">
+            <img src={groupBuy.image} alt={groupBuy.title} loading="lazy" className="w-full h-full object-cover" />
+          </div>
+
+          {/* 右侧信息区 */}
+          <div>
+            {/* 标题 + 状态 */}
+            <div className="flex items-start gap-3 mb-4">
+              <h1 className="text-xl font-semibold text-foreground-800 flex-1">{groupBuy.title}</h1>
+              <span className={`px-2.5 py-1 text-xs rounded-lg font-medium whitespace-nowrap ${
+                isOngoing ? 'bg-primary-100 text-primary-700' : isCompleted ? 'bg-accent-100 text-accent-600' : 'bg-secondary-100 text-foreground-400'
+              }`}>
+                {isOngoing ? '进行中' : isCompleted ? '已成团' : '已结束'}
+              </span>
+            </div>
+
+            {/* 价格 */}
+            <div className="flex items-baseline gap-3 mb-4">
+              <span className="text-3xl font-bold text-accent-600">¥{groupBuy.groupPrice}</span>
+              <span className="text-lg text-foreground-400 line-through">¥{groupBuy.originalPrice}</span>
+              {savedAmount > 0 && (
+                <span className="text-sm px-2 py-1 bg-accent-100 text-accent-600 rounded-lg font-medium">省¥{savedAmount}</span>
+              )}
+            </div>
+
+            {/* 进度条（大号 2.5px → h-3） */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-primary-600 font-medium">已参团 {groupBuy.currentMembers} 人</span>
+                <span className="text-foreground-400">成团需 {groupBuy.minMembers} 人，{Math.round(progress)}%</span>
+              </div>
+              <div className="h-3 bg-background-200 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-500 ${isCompleted ? 'bg-accent-500' : 'bg-primary-500'}`}
+                  style={{ width: `${Math.min(progress, 100)}%` }} />
+              </div>
+              {isOngoing && groupBuy.currentMembers < groupBuy.minMembers && (
+                <p className="text-xs text-foreground-400 mt-1.5">还差 {groupBuy.minMembers - groupBuy.currentMembers} 人成团</p>
+              )}
+            </div>
+
+            {/* 团长信息 */}
+            <div className="flex items-center gap-4 p-4 bg-background-100 rounded-xl mb-4">
+              <img src={groupBuy.initiator.avatar} alt={groupBuy.initiator.name} loading="lazy" className="w-12 h-12 rounded-full" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-medium text-foreground-800">{groupBuy.initiator.name}</span>
+                  {groupBuy.initiator.isVerified && <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>}
+                  <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-600 rounded-lg font-medium">团长</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-foreground-500 mt-0.5">
+                  <i className="ri-star-fill text-warning text-xs"></i>
+                  <span>{groupBuy.initiator.rating} 分</span>
+                  <span>·</span>
+                  <span>{groupBuy.initiator.campus}</span>
+                </div>
+              </div>
+              <Link to={`/chat/${groupBuy.initiator.id}`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium">
+                <i className="ri-chat-3-line"></i>私聊团长
+              </Link>
+            </div>
+
+            {/* 取货地点和截止时间 */}
+            <div className="flex gap-4 mb-4">
+              <span className="inline-flex items-center gap-1.5 text-sm text-foreground-500 px-2.5 py-1 bg-background-100 rounded-lg">
+                <i className="ri-map-pin-line text-xs"></i>{groupBuy.pickupLocation}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-sm text-foreground-500 px-2.5 py-1 bg-background-100 rounded-lg">
+                <i className="ri-time-line text-xs"></i>截止 {groupBuy.deadline}
+              </span>
+            </div>
+
+            {/* 团购说明 */}
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-foreground-700 mb-2">团购说明</h3>
+              <p className="text-sm text-foreground-600 leading-relaxed whitespace-pre-line">{groupBuy.description}</p>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-3 mb-6">
+              <button disabled={isCompleted || isEnded}
+                className={`flex-1 py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium ${
+                  isCompleted || isEnded
+                    ? 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
+                    : 'bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98]'
+                }`}
+                onClick={() => setShowPaymentModal(true)}>
+                {isCompleted ? '已成团' : isEnded ? '已结束' : '立即支付'}
+              </button>
+              <button
+                className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
+                  isJoined ? 'bg-primary-50 text-primary-500 ring-2 ring-primary-200' : 'bg-background-100 text-foreground-500 hover:bg-primary-50 hover:text-primary-500'
+                }`}
+                onClick={handleJoin}>
+                <i className={`${isJoined ? 'ri-user-follow-fill' : 'ri-user-add-line'} text-xl`}></i>
+              </button>
+              <button
+                className="w-12 h-12 flex items-center justify-center rounded-xl bg-background-100 text-foreground-500 hover:bg-primary-50 hover:text-primary-500 transition-all duration-200 cursor-pointer"
+                onClick={handleShare}>
+                <i className="ri-share-line text-xl"></i>
+              </button>
+            </div>
+
+            {/* 安全提示 */}
+            <div className="bg-warning/10 rounded-xl p-4">
+              <p className="text-sm text-foreground-600 flex items-center gap-2">
+                <i className="ri-shield-check-line text-warning"></i>
+                平台仅提供信息展示，付款请确认团长身份，注意交易安全
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <PaymentModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)}
+        amount={groupBuy.groupPrice} title={groupBuy.title} recipient={groupBuy.initiator.name} />
+    </div>
+  )
+}

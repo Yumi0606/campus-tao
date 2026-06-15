@@ -1,45 +1,123 @@
-import { Link } from 'react-router-dom';
-import styles from './Footer.module.css';
+export function Footer() {
+  const currentYear = new Date().getFullYear()
 
-export default function Footer() {
+  const footerLinks = {
+    quickNav: [
+      { label: '二手交易', path: '/secondhand', icon: 'ri-swap-box-line' },
+      { label: '拼团团购', path: '/groupbuy', icon: 'ri-group-line' },
+      { label: '校园论坛', path: '/forum', icon: 'ri-chat-smile-2-line' },
+    ],
+    help: [
+      { label: '使用指南', path: '#', icon: 'ri-book-line' },
+      { label: '交易安全', path: '#', icon: 'ri-shield-check-line' },
+      { label: '举报反馈', path: '#', icon: 'ri-flag-line' },
+    ],
+    about: [
+      { label: '关于我们', path: '#', icon: 'ri-team-line' },
+      { label: '用户协议', path: '#', icon: 'ri-file-text-line' },
+      { label: '隐私政策', path: '#', icon: 'ri-lock-line' },
+    ],
+  }
+
   return (
-    <footer className={styles.footer}>
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <div className={styles.brand}>
-            <span className={styles.logo}>⇄ 校园市集</span>
-            <p className={styles.slogan}>让闲置流动，让相遇温暖</p>
+    <footer className="bg-background-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 flex items-center justify-center bg-primary-500 rounded-lg">
+                <i className="ri-store-2-line text-xl text-white"></i>
+              </div>
+              <span className="text-xl font-bold text-foreground-800">校园淘</span>
+            </div>
+            <p className="text-sm text-foreground-500 leading-relaxed">
+              校园专属信息撮合平台，让闲置流动起来，让校园生活更便捷。提供二手交易、拼团团购、校园论坛三大核心功能。
+            </p>
           </div>
 
-          <div className={styles.links}>
-            <div className={styles.section}>
-              <h4>功能</h4>
-              <Link to="/secondhand">二手交易</Link>
-              <Link to="/groupbuy">拼团团购</Link>
-              <Link to="/forum">校园论坛</Link>
-            </div>
-            <div className={styles.section}>
-              <h4>帮助</h4>
-              <a href="#">使用指南</a>
-              <a href="#">安全交易</a>
-              <a href="#">联系我们</a>
-            </div>
-            <div className={styles.section}>
-              <h4>关于</h4>
-              <a href="#">关于我们</a>
-              <a href="#">用户协议</a>
-              <a href="#">隐私政策</a>
-            </div>
+          {/* 快速导航 */}
+          <div>
+            <h4 className="text-sm font-semibold text-foreground-700 mb-4">快速导航</h4>
+            <ul className="space-y-1">
+              {footerLinks.quickNav.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    to={link.path}
+                    className="flex items-center gap-2 text-sm text-foreground-500 px-2 py-1.5 rounded-lg hover:bg-background-200 hover:text-primary-500 transition-all duration-200"
+                  >
+                    <i className={link.icon}></i>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* 帮助中心 */}
+          <div>
+            <h4 className="text-sm font-semibold text-foreground-700 mb-4">帮助中心</h4>
+            <ul className="space-y-1">
+              {footerLinks.help.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    to={link.path}
+                    className="flex items-center gap-2 text-sm text-foreground-500 px-2 py-1.5 rounded-lg hover:bg-background-200 hover:text-primary-500 transition-all duration-200"
+                  >
+                    <i className={link.icon}></i>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* 关于我们 */}
+          <div>
+            <h4 className="text-sm font-semibold text-foreground-700 mb-4">关于我们</h4>
+            <ul className="space-y-1">
+              {footerLinks.about.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    to={link.path}
+                    className="flex items-center gap-2 text-sm text-foreground-500 px-2 py-1.5 rounded-lg hover:bg-background-200 hover:text-primary-500 transition-all duration-200"
+                  >
+                    <i className={link.icon}></i>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div className={styles.bottom}>
-          <p>© 2026 校园市集</p>
-          <p className={styles.disclaimer}>
-            平台仅提供信息展示，不涉及资金托管。建议校内面交。
+        {/* Bottom */}
+        <div className="mt-10 pt-6 border-t border-secondary-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-foreground-400">
+            © {currentYear} 校园淘. 保留所有权利.
           </p>
+          <div className="flex items-center gap-2">
+            <a
+              href="#"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-200 hover:text-primary-500 transition-all duration-200"
+            >
+              <i className="ri-wechat-fill text-lg"></i>
+            </a>
+            <a
+              href="#"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-200 hover:text-primary-500 transition-all duration-200"
+            >
+              <i className="ri-weibo-fill text-lg"></i>
+            </a>
+            <a
+              href="#"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-200 hover:text-primary-500 transition-all duration-200"
+            >
+              <i className="ri-bilibili-fill text-lg"></i>
+            </a>
+          </div>
         </div>
       </div>
     </footer>
-  );
+  )
 }

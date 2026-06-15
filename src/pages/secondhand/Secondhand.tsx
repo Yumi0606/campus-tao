@@ -1,169 +1,176 @@
-import { useState, useMemo } from 'react';
-import { Search, Plus } from 'lucide-react';
-import ProductCard from '../../components/base/ProductCard';
-import { products } from '../../mocks/products';
-import { categories, campuses } from '../../mocks/types';
-import styles from './Secondhand.module.css';
+import { ProductCard } from '@/components/base/ProductCard'
+import { PublishProductModal } from './components/PublishProductModal'
+import { secondhandProducts, categories, campuses } from '@/mocks/secondhand'
 
-type SortType = 'default' | 'price-asc' | 'price-desc' | 'newest';
+export function Secondhand() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('全部')
+  const [selectedCampus, setSelectedCampus] = useState('全部校区')
+  const [sortBy, setSortBy] = useState<'latest' | 'price-asc' | 'price-desc' | 'views'>('latest')
+  const [showFilters, setShowFilters] = useState(false)
+  const [showPublishModal, setShowPublishModal] = useState(false)
+  const [showMyOnly, setShowMyOnly] = useState(false)
+  const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set())
 
-export default function Secondhand() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedCampus, setSelectedCampus] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortType>('default');
+  const currentUserName = '小李同学'
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
+  // 收藏切换
+  const handleLikeToggle = (productId: string) => {
+    setLikedProducts((prev) => {
+      const next = new Set(prev)
+      if (next.has(productId)) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+  }
 
-    if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.category === selectedCategory);
-    }
+  // 筛选
+  let filteredProducts = secondhandProducts.filter((product) => {
+    const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = selectedCategory === '全部' || product.category === selectedCategory
+    const matchesCampus = selectedCampus === '全部校区' || product.campus === selectedCampus
+    const matchesMy = !showMyOnly || product.seller.name === currentUserName
+    return matchesSearch && matchesCategory && matchesCampus && matchesMy
+  })
 
-    if (selectedCampus !== 'all') {
-      result = result.filter(
-        (p) => p.campus === campuses.find((c) => c.id === selectedCampus)?.name
-      );
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query)
-      );
-    }
-
+  // 排序
+  filteredProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'newest':
-        result.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        break;
+      case 'price-asc': return a.price - b.price
+      case 'price-desc': return b.price - a.price
+      case 'views': return b.views - a.views
+      default: return new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()
     }
-
-    return result;
-  }, [selectedCategory, selectedCampus, searchQuery, sortBy]);
+  })
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        {/* Header */}
-        <div className={styles.header}>
-          <h1 className={styles.title}>二手交易</h1>
-          <p className={styles.subtitle}>淘好物，省大钱</p>
+    <div className="min-h-screen pt-20 pb-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* 标题栏 */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground-800">二手交易</h1>
+            <p className="text-sm text-foreground-500 mt-1">校园闲置物品流转，让闲置变现金</p>
+          </div>
+          <button
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium"
+            onClick={() => setShowPublishModal(true)}
+          >
+            <i className="ri-add-line"></i>
+            发布商品
+          </button>
         </div>
 
-        {/* Search Bar */}
-        <div className={styles.searchBar}>
-          <div className={styles.searchInputWrapper}>
-            <Search size={20} className={styles.searchIcon} />
+        {/* 搜索栏 */}
+        <div className="flex gap-3 mb-6">
+          <div className="flex-1 relative">
+            <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-400"></i>
             <input
               type="text"
               placeholder="搜索商品..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
+              className="w-full pl-10 pr-4 py-2.5 bg-background-100 rounded-xl border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none text-sm transition-all duration-200"
             />
           </div>
-          <button className={styles.publishBtn}>
-            <Plus size={20} />
-            发布商品
+          <button
+            className={`inline-flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${
+              showFilters
+                ? 'bg-primary-500 text-white'
+                : 'bg-background-100 text-foreground-500 border border-secondary-200 hover:bg-background-200 hover:text-primary-500'
+            }`}
+            onClick={() => setShowFilters(!showFilters)}
+            title="筛选"
+          >
+            <i className="ri-filter-3-line"></i>
+          </button>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="px-4 py-2.5 bg-background-100 rounded-xl border border-secondary-200 text-sm text-foreground-600 focus:outline-none focus:border-primary-500 transition-all duration-200 cursor-pointer"
+          >
+            <option value="latest">最新发布</option>
+            <option value="price-asc">价格从低到高</option>
+            <option value="price-desc">价格从高到低</option>
+            <option value="views">最多浏览</option>
+          </select>
+        </div>
+
+        {/* 分类标签栏 — rounded-full */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium ${
+                selectedCategory === category
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-background-100 text-foreground-500 hover:bg-background-200 hover:text-foreground-700'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowMyOnly(!showMyOnly)}
+            className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium ${
+              showMyOnly
+                ? 'bg-accent-500 text-white'
+                : 'bg-background-100 text-foreground-500 hover:bg-accent-50 hover:text-accent-500'
+            }`}
+          >
+            我的
           </button>
         </div>
 
-        {/* Filters */}
-        <div className={styles.filters}>
-          {/* Categories */}
-          <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>分类</span>
-            <div className={styles.tags}>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  className={`${styles.tag} ${
-                    selectedCategory === cat.id ? styles.tagActive : ''
-                  }`}
-                  onClick={() => setSelectedCategory(cat.id)}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
+        {/* 校区筛选（可展开） */}
+        {showFilters && (
+          <div className="flex flex-wrap items-center gap-2 mb-6 p-4 bg-background-100 rounded-xl">
+            <span className="text-sm text-foreground-500 font-medium mr-1">校区：</span>
+            {campuses.map((campus) => (
+              <button
+                key={campus}
+                onClick={() => setSelectedCampus(campus)}
+                className={`px-3.5 py-1.5 rounded-lg text-sm transition-all duration-200 whitespace-nowrap ${
+                  selectedCampus === campus
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-background-50 text-foreground-500 hover:bg-background-200 hover:text-foreground-700 border border-secondary-200'
+                }`}
+              >
+                {campus}
+              </button>
+            ))}
           </div>
+        )}
 
-          {/* Campus */}
-          <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>校区</span>
-            <div className={styles.tags}>
-              {campuses.map((campus) => (
-                <button
-                  key={campus.id}
-                  className={`${styles.tag} ${
-                    selectedCampus === campus.id ? styles.tagActive : ''
-                  }`}
-                  onClick={() => setSelectedCampus(campus.id)}
-                >
-                  {campus.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Sort */}
-          <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>排序</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortType)}
-              className={styles.select}
-            >
-              <option value="default">默认</option>
-              <option value="price-asc">价格低到高</option>
-              <option value="price-desc">价格高到低</option>
-              <option value="newest">最新发布</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Results */}
-        <div className={styles.results}>
-          <p className={styles.resultCount}>
-            共 <strong>{filteredProducts.length}</strong> 件商品
-          </p>
-        </div>
-
-        {/* Product Grid */}
+        {/* 商品网格 */}
         {filteredProducts.length > 0 ? (
-          <div className={styles.productGrid}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                liked={likedProducts.has(product.id)}
+                onLikeToggle={handleLikeToggle}
+              />
             ))}
           </div>
         ) : (
-          <div className={styles.empty}>
-            <p>没有找到符合条件的商品</p>
-            <button
-              className={styles.resetBtn}
-              onClick={() => {
-                setSelectedCategory('all');
-                setSelectedCampus('all');
-                setSearchQuery('');
-              }}
-            >
-              重置筛选
-            </button>
+          <div className="text-center py-20">
+            <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-background-200 rounded-2xl">
+              <i className="ri-inbox-line text-3xl text-secondary-400"></i>
+            </div>
+            <p className="text-foreground-500 font-medium">没有找到相关商品</p>
+            <p className="text-sm text-foreground-400 mt-1">试试调整筛选条件</p>
           </div>
         )}
       </div>
+
+      {/* 发布弹窗 */}
+      <PublishProductModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+      />
     </div>
-  );
+  )
 }

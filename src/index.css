@@ -1,0 +1,141 @@
+/* 校园淘 - 全局样式系统 */
+
+/* Google Fonts 导入 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=ZCOOL+KuaiLe&display=swap');
+
+/* Tailwind CSS v4 导入 */
+@import "tailwindcss";
+
+/* ========================================
+   Tailwind 主题配置 — 颜色值必须直接写死
+   oklch() 值，不能用 var() 嵌套
+   ======================================== */
+@theme {
+  --font-sans: 'Noto Sans SC', system-ui, sans-serif;
+
+  /* Background - 暖奶油白系 */
+  --color-background-50: oklch(0.99 0.005 95);
+  --color-background-100: oklch(0.98 0.008 90);
+  --color-background-200: oklch(0.96 0.01 85);
+  --color-background-300: oklch(0.94 0.012 80);
+  --color-background-400: oklch(0.92 0.014 75);
+  --color-background-500: oklch(0.90 0.015 70);
+  --color-background-600: oklch(0.85 0.015 65);
+  --color-background-700: oklch(0.80 0.014 60);
+  --color-background-800: oklch(0.70 0.012 50);
+  --color-background-900: oklch(0.60 0.01 40);
+  --color-background-950: oklch(0.50 0.008 30);
+
+  /* Primary - 暖琥珀/蜂蜜金 */
+  --color-primary-50: oklch(0.98 0.02 85);
+  --color-primary-100: oklch(0.95 0.05 80);
+  --color-primary-200: oklch(0.90 0.10 75);
+  --color-primary-300: oklch(0.85 0.14 70);
+  --color-primary-400: oklch(0.82 0.17 65);
+  --color-primary-500: oklch(0.78 0.20 60);
+  --color-primary-600: oklch(0.72 0.19 55);
+  --color-primary-700: oklch(0.65 0.17 50);
+  --color-primary-800: oklch(0.55 0.14 45);
+  --color-primary-900: oklch(0.45 0.10 40);
+  --color-primary-950: oklch(0.35 0.08 35);
+
+  /* Accent - 珊瑚/暖玫瑰 */
+  --color-accent-50: oklch(0.97 0.02 85);
+  --color-accent-100: oklch(0.94 0.06 80);
+  --color-accent-200: oklch(0.88 0.12 75);
+  --color-accent-300: oklch(0.82 0.18 70);
+  --color-accent-400: oklch(0.77 0.22 65);
+  --color-accent-500: oklch(0.72 0.25 60);
+  --color-accent-600: oklch(0.65 0.23 55);
+  --color-accent-700: oklch(0.58 0.20 50);
+  --color-accent-800: oklch(0.48 0.16 45);
+  --color-accent-900: oklch(0.38 0.12 40);
+  --color-accent-950: oklch(0.28 0.08 35);
+
+  /* Secondary - 暖沙色/taupe */
+  --color-secondary-50: oklch(0.96 0.01 90);
+  --color-secondary-100: oklch(0.93 0.03 85);
+  --color-secondary-200: oklch(0.88 0.05 78);
+  --color-secondary-300: oklch(0.82 0.07 72);
+  --color-secondary-400: oklch(0.76 0.09 66);
+  --color-secondary-500: oklch(0.70 0.10 58);
+  --color-secondary-600: oklch(0.62 0.09 52);
+  --color-secondary-700: oklch(0.54 0.08 46);
+  --color-secondary-800: oklch(0.45 0.07 40);
+  --color-secondary-900: oklch(0.36 0.05 34);
+  --color-secondary-950: oklch(0.28 0.04 28);
+
+  /* Foreground - 暖深棕 */
+  --color-foreground-50: oklch(0.90 0.02 85);
+  --color-foreground-100: oklch(0.82 0.03 75);
+  --color-foreground-200: oklch(0.70 0.04 60);
+  --color-foreground-300: oklch(0.58 0.04 48);
+  --color-foreground-400: oklch(0.46 0.04 38);
+  --color-foreground-500: oklch(0.36 0.04 30);
+  --color-foreground-600: oklch(0.28 0.035 24);
+  --color-foreground-700: oklch(0.22 0.03 18);
+  --color-foreground-800: oklch(0.18 0.03 14);
+  --color-foreground-900: oklch(0.16 0.03 10);
+  --color-foreground-950: oklch(0.16 0.03 8);
+
+  /* 状态色 */
+  --color-success: oklch(0.72 0.19 142);
+  --color-warning: oklch(0.80 0.18 85);
+  --color-error: oklch(0.65 0.22 25);
+}
+
+/* 基础样式 */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: oklch(0.99 0.005 95);
+  color: oklch(0.18 0.03 14);
+  line-height: 1.6;
+  min-width: 1024px;
+}
+
+/* 禁止 box-shadow */
+* {
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+}
+
+/* 平滑滚动 */
+* {
+  scroll-behavior: smooth;
+}
+
+/* 图片 hover 效果 */
+.img-hover {
+  overflow: hidden;
+}
+
+.img-hover img {
+  transition: transform 0.3s ease-out;
+}
+
+.img-hover:hover img {
+  transform: scale(1.05);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(0.98 0.008 90);
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.82 0.07 72);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.76 0.09 66);
+}

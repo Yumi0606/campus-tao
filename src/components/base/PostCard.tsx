@@ -1,87 +1,112 @@
-import { Link } from 'react-router-dom';
-import { Heart, MessageSquare, Eye, Pin, Flame } from 'lucide-react';
-import type { Post } from '../../mocks/types';
-import styles from './PostCard.module.css';
+import type { Post } from '@/mocks/types'
+import { useToast } from '@/components/base/Toast'
 
 interface PostCardProps {
-  post: Post;
+  post: Post
 }
 
-const categoryStyles: Record<string, { bg: string; color: string }> = {
-  course: { bg: '#FEF3C7', color: '#B45309' },
-  activity: { bg: '#FEE2E2', color: '#B91C1C' },
-  job: { bg: '#DBEAFE', color: '#1E40AF' },
-  study: { bg: '#DCFCE7', color: '#15803D' },
-  life: { bg: '#F3E8FF', color: '#7C3AED' },
-  lost: { bg: '#FED7AA', color: '#C2410C' },
-  other: { bg: '#F5F5F5', color: '#525252' },
-};
+export function PostCard({ post }: PostCardProps) {
+  const { showToast } = useToast()
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(post.likes)
 
-const categoryNames: Record<string, string> = {
-  course: '选课攻略',
-  activity: '活动通知',
-  job: '招聘信息',
-  study: '学习交流',
-  life: '校园生活',
-  lost: '失物招领',
-  other: '其他',
-};
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const newLiked = !isLiked
+    setIsLiked(newLiked)
+    setLikeCount(newLiked ? likeCount + 1 : likeCount - 1)
+    showToast(newLiked ? '已点赞' : '已取消点赞', newLiked ? 'success' : 'info')
+  }
 
-export default function PostCard({ post }: PostCardProps) {
-  const style = categoryStyles[post.category] || categoryStyles.other;
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/forum/${post.id}`)
+      showToast('链接已复制到剪贴板', 'success')
+    } catch {
+      showToast('复制失败，请手动复制', 'error')
+    }
+  }
 
   return (
-    <Link to={`/forum/${post.id}`} className={styles.card}>
-      <div className={styles.header}>
-        <span
-          className={styles.category}
-          style={{ background: style.bg, color: style.color }}
-        >
-          {categoryNames[post.category] || '其他'}
-        </span>
-        {post.isPinned && (
-          <span className={styles.pinned}>
-            <Pin size={14} /> 置顶
-          </span>
-        )}
-        {post.isHot && (
-          <span className={styles.hot}>
-            <Flame size={14} /> 热门
-          </span>
-        )}
+    <Link
+      to={`/forum/${post.id}`}
+      className="group block p-4 bg-background-50 rounded-xl transition-all duration-200 hover:bg-primary-50/50 hover:-translate-y-0.5"
+    >
+      {/* 作者头像 + 标题 */}
+      <div className="flex items-start gap-3 mb-3">
+        <img
+          src={post.author.avatar}
+          alt={post.author.name}
+          loading="lazy"
+          className="w-10 h-10 rounded-full shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-medium text-foreground-800">{post.author.name}</span>
+            {post.author.isVerified && (
+              <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>
+            )}
+          </div>
+          <h3 className="text-base font-medium text-foreground-900 line-clamp-1 group-hover:text-primary-700 transition-colors">
+            {post.title}
+          </h3>
+        </div>
       </div>
 
-      <h3 className={styles.title}>{post.title}</h3>
+      {/* 正文 — 2行截断 */}
+      <p className="text-sm text-foreground-600 line-clamp-2 mb-3">
+        {post.content}
+      </p>
 
-      <p className={styles.content}>{post.content}</p>
-
-      {post.images && post.images.length > 0 && (
-        <div className={styles.images}>
-          {post.images.slice(0, 3).map((img, i) => (
-            <img key={i} src={img} alt="" className={styles.image} />
-          ))}
-        </div>
-      )}
-
-      <div className={styles.footer}>
-        <div className={styles.author}>
-          <img src={post.author.avatar} alt={post.author.name} className={styles.avatar} />
-          <span className={styles.authorName}>{post.author.name}</span>
-          <span className={styles.date}>{post.createdAt}</span>
-        </div>
-
-        <div className={styles.stats}>
-          <span>
-            <Heart size={16} /> {post.likes}
+      {/* 标签行 — 置顶(accent色) + 分类 + #tag */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {post.isPinned && (
+          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-accent-100 text-accent-600 rounded-full font-medium">
+            <i className="ri-pushpin-line"></i>
+            置顶
           </span>
-          <span>
-            <MessageSquare size={16} /> {post.comments}
+        )}
+        <span className="text-xs px-2 py-1 bg-secondary-100 text-secondary-600 rounded-full">
+          {post.category}
+        </span>
+        {post.tags.slice(0, 3).map((tag) => (
+          <span key={tag} className="text-xs text-foreground-400 hover:text-primary-500 transition-colors">
+            #{tag}
           </span>
-          <span>
-            <Eye size={16} /> {post.views}
+        ))}
+      </div>
+
+      {/* 底部信息栏 — 点赞/评论/分享 图标按钮，带 hover 背景 */}
+      <div className="flex items-center justify-between text-xs text-foreground-400">
+        <div className="flex items-center gap-1">
+          <button
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
+              isLiked
+                ? 'text-accent-500 bg-accent-50'
+                : 'hover:bg-accent-50 hover:text-accent-500'
+            }`}
+            onClick={handleLike}
+          >
+            <i className={`${isLiked ? 'ri-heart-fill' : 'ri-heart-line'}`}></i>
+            {likeCount}
+          </button>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-primary-50 hover:text-primary-500 transition-all duration-200">
+            <i className="ri-chat-3-line"></i>
+            {post.comments}
           </span>
+          <button
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-primary-50 hover:text-primary-500 transition-all duration-200 cursor-pointer"
+            onClick={handleShare}
+          >
+            <i className="ri-share-line"></i>
+            分享
+          </button>
         </div>
+        <span className="text-foreground-300">{post.postedAt}</span>
       </div>
     </Link>
-  );
+  )
 }

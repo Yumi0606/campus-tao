@@ -1,118 +1,112 @@
-import { useState, useMemo } from 'react';
-import { Plus } from 'lucide-react';
-import GroupBuyCard from '../../components/base/GroupBuyCard';
-import { groupBuys } from '../../mocks/groupBuys';
-import styles from './Groupbuy.module.css';
+import { GroupBuyCard } from '@/components/base/GroupBuyCard'
+import { PublishGroupBuyModal } from './components/PublishGroupBuyModal'
+import { groupBuys, groupBuyStatuses } from '@/mocks/groupbuy'
 
-type StatusFilter = 'all' | '进行中' | '即将成团' | '已成团' | '已结束';
+export function Groupbuy() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('全部')
+  const [showPublishModal, setShowPublishModal] = useState(false)
+  const [showMyOnly, setShowMyOnly] = useState(false)
 
-export default function Groupbuy() {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const currentUserName = '吃货团长'
 
-  const statusOptions: { id: StatusFilter; label: string; count: number }[] = [
-    { id: 'all', label: '全部', count: groupBuys.length },
-    {
-      id: '进行中',
-      label: '进行中',
-      count: groupBuys.filter((g) => g.status === '进行中').length,
-    },
-    {
-      id: '即将成团',
-      label: '即将成团',
-      count: groupBuys.filter((g) => g.status === '即将成团').length,
-    },
-    {
-      id: '已成团',
-      label: '已成团',
-      count: groupBuys.filter((g) => g.status === '已成团').length,
-    },
-    {
-      id: '已结束',
-      label: '已结束',
-      count: groupBuys.filter((g) => g.status === '已结束').length,
-    },
-  ];
-
-  const filteredGroupBuys = useMemo(() => {
-    if (statusFilter === 'all') return groupBuys;
-    return groupBuys.filter((g) => g.status === statusFilter);
-  }, [statusFilter]);
+  const filteredGroupBuys = groupBuys.filter((gb) => {
+    const matchesSearch = gb.title.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = selectedStatus === '全部' || gb.status === selectedStatus
+    const matchesMy = !showMyOnly || gb.initiator.name === currentUserName
+    return matchesSearch && matchesStatus && matchesMy
+  })
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        {/* Header */}
-        <div className={styles.header}>
-          <h1 className={styles.title}>拼团团购</h1>
-          <p className={styles.subtitle}>人多力量大，一起省钱</p>
-        </div>
-
-        {/* How it works */}
-        <div className={styles.howItWorks}>
-          <h3 className={styles.howTitle}>拼团流程</h3>
-          <div className={styles.steps}>
-            <div className={styles.step}>
-              <span className={styles.stepNumber}>1</span>
-              <span>浏览拼团</span>
-            </div>
-            <span className={styles.stepArrow}>→</span>
-            <div className={styles.step}>
-              <span className={styles.stepNumber}>2</span>
-              <span>报名参团</span>
-            </div>
-            <span className={styles.stepArrow}>→</span>
-            <div className={styles.step}>
-              <span className={styles.stepNumber}>3</span>
-              <span>等待成团</span>
-            </div>
-            <span className={styles.stepArrow}>→</span>
-            <div className={styles.step}>
-              <span className={styles.stepNumber}>4</span>
-              <span>线下取货</span>
-            </div>
+    <div className="min-h-screen pt-20 pb-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* 标题栏 */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground-800">拼团团购</h1>
+            <p className="text-sm text-foreground-500 mt-1">一起买更便宜，省钱购物新方式</p>
           </div>
-          <p className={styles.howNote}>
-            团主负责统一购买与分发，团员线上报名后线下付款取货
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className={styles.actions}>
-          <button className={styles.publishBtn}>
-            <Plus size={20} />
+          <button
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium"
+            onClick={() => setShowPublishModal(true)}
+          >
+            <i className="ri-add-line"></i>
             发起拼团
           </button>
         </div>
 
-        {/* Status Filter */}
-        <div className={styles.statusFilter}>
-          {statusOptions.map((option) => (
-            <button
-              key={option.id}
-              className={`${styles.statusBtn} ${
-                statusFilter === option.id ? styles.statusBtnActive : ''
-              }`}
-              onClick={() => setStatusFilter(option.id)}
-            >
-              {option.label}
-              <span className={styles.count}>{option.count}</span>
-            </button>
-          ))}
+        {/* 搜索栏 */}
+        <div className="mb-6">
+          <div className="relative">
+            <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-400"></i>
+            <input
+              type="text" placeholder="搜索拼团..."
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-background-100 rounded-xl border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none text-sm transition-all duration-200"
+            />
+          </div>
         </div>
 
-        {/* Group Buy Grid */}
+        {/* 状态筛选标签 */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {groupBuyStatuses.map((status) => (
+            <button key={status} onClick={() => setSelectedStatus(status)}
+              className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium ${
+                selectedStatus === status
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-background-100 text-foreground-500 hover:bg-background-200 hover:text-foreground-700'
+              }`}>
+              {status}
+            </button>
+          ))}
+          <button onClick={() => setShowMyOnly(!showMyOnly)}
+            className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium ${
+              showMyOnly ? 'bg-accent-500 text-white' : 'bg-background-100 text-foreground-500 hover:bg-accent-50 hover:text-accent-500'
+            }`}>
+            我的
+          </button>
+        </div>
+
+        {/* 拼团列表 */}
         {filteredGroupBuys.length > 0 ? (
-          <div className={styles.grid}>
-            {filteredGroupBuys.map((groupBuy) => (
-              <GroupBuyCard key={groupBuy.id} groupBuy={groupBuy} />
+          <div className="flex flex-col gap-4 mb-12">
+            {filteredGroupBuys.map((gb) => (
+              <GroupBuyCard key={gb.id} groupBuy={gb} />
             ))}
           </div>
         ) : (
-          <div className={styles.empty}>
-            <p>暂无该状态的拼团</p>
+          <div className="text-center py-20 mb-12">
+            <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-background-200 rounded-2xl">
+              <i className="ri-inbox-line text-3xl text-secondary-400"></i>
+            </div>
+            <p className="text-foreground-500 font-medium">没有找到相关拼团</p>
+            <p className="text-sm text-foreground-400 mt-1">试试调整筛选条件</p>
           </div>
         )}
+
+        {/* 拼团流程说明 */}
+        <div className="bg-background-100 rounded-xl p-6">
+          <h3 className="text-base font-semibold text-foreground-800 mb-6">拼团流程</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[
+              { icon: 'ri-add-circle-line', title: '发起拼团', desc: '设置价格和人数' },
+              { icon: 'ri-user-add-line', title: '等待成团', desc: '邀请好友加入' },
+              { icon: 'ri-shopping-cart-line', title: '统一购买', desc: '团长负责采购' },
+              { icon: 'ri-hand-heart-line', title: '线下取货', desc: '约定地点分发' },
+            ].map((step, i) => (
+              <div key={i} className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 flex items-center justify-center bg-primary-100 rounded-xl mb-3">
+                  <i className={`${step.icon} text-xl text-primary-500`}></i>
+                </div>
+                <span className="text-sm font-medium text-foreground-800">{step.title}</span>
+                <span className="text-xs text-foreground-500 mt-1">{step.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      <PublishGroupBuyModal isOpen={showPublishModal} onClose={() => setShowPublishModal(false)} />
     </div>
-  );
+  )
 }

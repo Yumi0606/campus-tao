@@ -1,103 +1,167 @@
-export interface Product {
-  id: number;
-  title: string;
-  price: number;
-  originalPrice?: number;
-  condition: '全新' | '99新' | '95新' | '9成新' | '8成新';
-  category: string;
-  campus: string;
-  image: string;
-  seller: {
-    id: number;
-    name: string;
-    avatar: string;
-  };
-  description: string;
-  views: number;
-  likes: number;
-  createdAt: string;
-  isSold: boolean;
-}
+// 类型定义
 
-export interface GroupBuy {
-  id: number;
-  title: string;
-  image: string;
-  originalPrice: number;
-  groupPrice: number;
-  minPeople: number;
-  currentPeople: number;
-  deadline: string;
-  organizer: {
-    id: number;
-    name: string;
-    avatar: string;
-  };
-  description: string;
-  status: '进行中' | '即将成团' | '已成团' | '已结束';
-  campus: string;
-  pickupLocation: string;
-}
-
-export interface Post {
-  id: number;
-  title: string;
-  content: string;
-  category: string;
-  author: {
-    id: number;
-    name: string;
-    avatar: string;
-  };
-  likes: number;
-  comments: number;
-  views: number;
-  isPinned: boolean;
-  isHot: boolean;
-  createdAt: string;
-  images?: string[];
-  attachments?: { name: string; url: string }[];
-}
-
+// 用户基础信息
 export interface User {
-  id: number;
-  name: string;
-  avatar: string;
-  campus: string;
-  joinDate: string;
-  rating: number;
-  soldCount: number;
-  boughtCount: number;
-  groupBuyCount: number;
+  id: string
+  name: string
+  avatar: string
+  rating: number
+  campus?: string
+  department?: string
+  grade?: string
+  isVerified?: boolean
 }
 
-export const categories = [
-  { id: 'all', name: '全部', icon: '📦' },
-  { id: 'books', name: '教材书籍', icon: '📚' },
-  { id: 'electronics', name: '数码电子', icon: '💻' },
-  { id: 'clothes', name: '服饰鞋包', icon: '👕' },
-  { id: 'sports', name: '运动户外', icon: '⚽' },
-  { id: 'daily', name: '生活用品', icon: '🧴' },
-  { id: 'beauty', name: '美妆护肤', icon: '💄' },
-  { id: 'food', name: '食品零食', icon: '🍜' },
-  { id: 'other', name: '其他', icon: '🎁' },
-];
+// 二手商品
+export interface Product {
+  id: string
+  title: string
+  description: string
+  price: number
+  originalPrice: number
+  category: string
+  image: string
+  seller: User
+  status: 'available' | 'sold'
+  campus: string
+  postedAt: string
+  views: number
+  likes: number
+}
 
-export const campuses = [
-  { id: 'all', name: '全部校区' },
-  { id: 'main', name: '主校区' },
-  { id: 'east', name: '东校区' },
-  { id: 'south', name: '南校区' },
-  { id: 'north', name: '北校区' },
-];
+// 拼团
+export interface GroupBuy {
+  id: string
+  title: string
+  description: string
+  originalPrice: number
+  groupPrice: number
+  minMembers: number
+  currentMembers: number
+  image: string
+  initiator: User
+  status: 'ongoing' | 'completed' | 'ended'
+  deadline: string
+  pickupLocation: string
+  createdAt: string
+  views: number
+}
 
-export const forumCategories = [
-  { id: 'all', name: '全部', icon: '📋' },
-  { id: 'course', name: '选课攻略', icon: '📖' },
-  { id: 'activity', name: '活动通知', icon: '🎉' },
-  { id: 'job', name: '招聘信息', icon: '💼' },
-  { id: 'study', name: '学习交流', icon: '✏️' },
-  { id: 'life', name: '校园生活', icon: '🏠' },
-  { id: 'lost', name: '失物招领', icon: '🔍' },
-  { id: 'other', name: '其他', icon: '💬' },
-];
+// 论坛帖子
+export interface Post {
+  id: string
+  title: string
+  content: string
+  category: string
+  author: User
+  likes: number
+  comments: number
+  isPinned: boolean
+  hasAttachment: boolean
+  postedAt: string
+  tags: string[]
+  views: number
+}
+
+// 评论
+export interface Comment {
+  id: string
+  postId: string
+  author: User
+  content: string
+  likes: number
+  createdAt: string
+}
+
+// 个人中心 - 我的发布
+export interface MyProduct {
+  id: string
+  title: string
+  image: string
+  price: number
+  status: 'available' | 'sold'
+  views: number
+  postedAt: string
+}
+
+// 个人中心 - 我的收藏
+export interface MyFavorite {
+  id: string
+  productId: string
+  title: string
+  image: string
+  price: number
+  seller: User
+  postedAt: string
+}
+
+// 个人中心 - 交易记录
+export interface TradeRecord {
+  id: string
+  type: 'buy' | 'sell'
+  productName: string
+  date: string
+  price: number
+  counterparty: User
+  rating: number
+}
+
+// 个人中心 - 我的拼团
+export interface MyGroupBuy {
+  id: string
+  groupBuyId: string
+  title: string
+  role: 'leader' | 'member'
+  status: 'ongoing' | 'completed' | 'ended'
+  price: number
+  joinedAt: string
+}
+
+// 个人中心 - 评价
+export interface Review {
+  id: string
+  reviewer: User
+  date: string
+  productName: string
+  rating: number
+  content: string
+}
+
+// 用户资料
+export interface UserProfile {
+  id: string
+  name: string
+  avatar: string
+  campus: string
+  department: string
+  grade: string
+  bio: string
+  wechat: string
+  qq: string
+  rating: number
+  tradeCount: number
+  publishCount: number
+  groupBuyCount: number
+}
+
+// 聊天 - 联系人
+export interface Contact {
+  id: string
+  name: string
+  avatar: string
+  isOnline: boolean
+  lastMessage: string
+  lastMessageTime: string
+  sourceProduct?: string
+  unreadCount: number
+}
+
+// 聊天 - 消息
+export interface Message {
+  id: string
+  senderId: string
+  receiverId: string
+  content: string
+  createdAt: string
+  isRead: boolean
+}
