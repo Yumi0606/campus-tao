@@ -10,6 +10,8 @@ import { Profile } from '@/pages/profile/Profile'
 import { EditProfile } from '@/pages/profile/edit/EditProfile'
 import { Chat } from '@/pages/chat/Chat'
 import { NotFound } from '@/pages/NotFound'
+import { Login } from '@/pages/auth/Login'
+import { RequireAuth } from '@/components/base/RequireAuth'
 
 import type { RouteObject } from 'react-router-dom'
 
@@ -19,44 +21,48 @@ export const routes: RouteObject[] = [
     element: <Home />,
   },
   {
+    path: '/login',
+    element: <Login />,
+  },
+  {
     path: '/secondhand',
-    element: <Secondhand />,
+    element: <RequireAuth><Secondhand /></RequireAuth>,
   },
   {
     path: '/secondhand/:id',
-    element: <SecondhandDetail />,
+    element: <RequireAuth><SecondhandDetail /></RequireAuth>,
   },
   {
     path: '/groupbuy',
-    element: <Groupbuy />,
+    element: <RequireAuth><Groupbuy /></RequireAuth>,
   },
   {
     path: '/groupbuy/:id',
-    element: <GroupbuyDetail />,
+    element: <RequireAuth><GroupbuyDetail /></RequireAuth>,
   },
   {
     path: '/forum',
-    element: <Forum />,
+    element: <RequireAuth><Forum /></RequireAuth>,
   },
   {
     path: '/forum/:id',
-    element: <ForumDetail />,
+    element: <RequireAuth><ForumDetail /></RequireAuth>,
   },
   {
     path: '/profile',
-    element: <Profile />,
+    element: <RequireAuth><Profile /></RequireAuth>,
   },
   {
     path: '/profile/edit',
-    element: <EditProfile />,
+    element: <RequireAuth><EditProfile /></RequireAuth>,
   },
   {
     path: '/chat',
-    element: <Chat />,
+    element: <RequireAuth><Chat /></RequireAuth>,
   },
   {
     path: '/chat/:contactId',
-    element: <Chat />,
+    element: <RequireAuth><Chat /></RequireAuth>,
   },
   {
     path: '*',

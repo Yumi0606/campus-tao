@@ -1,48 +1,91 @@
-import { contacts, getMessagesByContactId, getContactById } from '@/mocks/chat'
-import type { Message } from '@/mocks/types'
+import { messageApi } from '@/api'
+import type { ConversationInfo, MessageInfo } from '@/api/types'
+import { useAuth } from '@/components/base/Auth'
+import { useToast } from '@/components/base/Toast'
 
 export function Chat() {
   const { contactId } = useParams()
+  const { user } = useAuth()
+  const { showToast } = useToast()
   const navigate = useNavigate()
-  const [selectedContact, setSelectedContact] = useState(contactId || '')
-  const [messageText, setMessageText] = useState('')
-  const [messages, setMessages] = useState<Message[]>([])
-  const [mobileShowChat, setMobileShowChat] = useState(!!contactId)
 
-  // 初始化消息
+  const [conversations, setConversations] = useState<ConversationInfo[]>([])
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(
+    contactId ? Number(contactId) : null
+  )
+  const [messages, setMessages] = useState<MessageInfo[]>([])
+  const [messageText, setMessageText] = useState('')
+  const [mobileShowChat, setMobileShowChat] = useState(!!contactId)
+  const [loadingConvos, setLoadingConvos] = useState(true)
+
+  // 加载会话列表
   useEffect(() => {
-    if (selectedContact) {
-      setMessages(getMessagesByContactId(selectedContact))
-    }
-  }, [selectedContact])
+    messageApi.conversations()
+      .then((data) => {
+        setConversations(data)
+        // 如果没有选中联系人且有会话，选第一个
+        if (!selectedContactId && data.length > 0) {
+          setSelectedContactId(data[0].contactId)
+        }
+      })
+      .catch(() => showToast('加载会话失败', 'error'))
+      .finally(() => setLoadingConvos(false))
+  }, [])
+
+  // 选中联系人时加载消息
+  useEffect(() => {
+    if (!selectedContactId) return
+    messageApi.history(selectedContactId, 1, 100)
+      .then((data) => {
+        setMessages(data.records)
+        setMobileShowChat(true)
+      })
+      .catch(() => showToast('加载消息失败', 'error'))
+  }, [selectedContactId])
 
   // 路由变化时切换联系人
   useEffect(() => {
-    if (contactId && contactId !== selectedContact) {
-      setSelectedContact(contactId)
-      setMobileShowChat(true)
+    if (contactId) {
+      const id = Number(contactId)
+      if (id !== selectedContactId) {
+        setSelectedContactId(id)
+      }
     }
   }, [contactId])
 
-  const currentContact = selectedContact ? getContactById(selectedContact) : null
+  const currentContact = conversations.find((c) => c.contactId === selectedContactId)
 
-  const handleSelectContact = (id: string) => {
-    setSelectedContact(id)
-    setMobileShowChat(true)
+  const handleSelectContact = (id: number) => {
+    setSelectedContactId(id)
+    // 标记未读消息为已读
+    const conv = conversations.find((c) => c.contactId === id)
+    if (conv && conv.unreadCount > 0) {
+      // 找到该会话中未读的消息并标记
+      messageApi.history(id, 1, conv.unreadCount)
+        .then((data) => {
+          data.records
+            .filter((m) => !m.isRead && m.receiverId === user?.id)
+            .forEach((m) => messageApi.markRead(m.id))
+        })
+      // 更新本地未读数
+      setConversations((prev) =>
+        prev.map((c) => c.contactId === id ? { ...c, unreadCount: 0 } : c)
+      )
+    }
   }
 
-  const handleSend = () => {
-    if (!messageText.trim() || !selectedContact) return
-    const newMsg: Message = {
-      id: `m_new_${Date.now()}`,
-      senderId: 'me',
-      receiverId: selectedContact,
-      content: messageText,
-      createdAt: new Date().toLocaleString('zh-CN'),
-      isRead: true,
+  const handleSend = async () => {
+    if (!messageText.trim() || !selectedContactId) return
+    try {
+      const newMsg = await messageApi.send({
+        receiverId: selectedContactId,
+        content: messageText,
+      })
+      setMessages([...messages, newMsg])
+      setMessageText('')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '发送失败', 'error')
     }
-    setMessages([...messages, newMsg])
-    setMessageText('')
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -62,39 +105,42 @@ export function Chat() {
           <div className="p-4 border-b border-secondary-200">
             <h2 className="text-base font-semibold text-foreground-800">消息</h2>
           </div>
-          <div className="divide-y divide-secondary-100">
-            {contacts.map((contact) => (
-              <button key={contact.id}
-                onClick={() => handleSelectContact(contact.id)}
-                className={`w-full flex items-center gap-3 p-4 text-left transition-all duration-200 ${
-                  selectedContact === contact.id
-                    ? 'bg-primary-50'
-                    : 'hover:bg-background-100'
-                }`}>
-                <div className="relative">
-                  <img src={contact.avatar} alt={contact.name} loading="lazy" className="w-10 h-10 rounded-full" />
-                  {contact.isOnline && (
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-background-50"></span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground-800 truncate">{contact.name}</span>
-                    <span className="text-xs text-foreground-400 shrink-0 ml-2">{contact.lastMessageTime}</span>
+          {loadingConvos ? (
+            <div className="flex justify-center py-10">
+              <i className="ri-loader-4-line text-2xl text-primary-500 animate-spin"></i>
+            </div>
+          ) : (
+            <div className="divide-y divide-secondary-100">
+              {conversations.map((contact) => (
+                <button key={contact.contactId}
+                  onClick={() => handleSelectContact(contact.contactId)}
+                  className={`w-full flex items-center gap-3 p-4 text-left transition-all duration-200 cursor-pointer ${
+                    selectedContactId === contact.contactId
+                      ? 'bg-primary-50'
+                      : 'hover:bg-background-100'
+                  }`}>
+                  <div className="relative">
+                    <img src={contact.contactAvatar} alt={contact.contactName} loading="lazy" className="w-10 h-10 rounded-full" />
+                    {contact.unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-accent-500 text-white text-xs rounded-full shrink-0 font-medium">
+                        {contact.unreadCount}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-foreground-400 truncate mt-0.5">{contact.lastMessage}</p>
-                  {contact.sourceProduct && (
-                    <p className="text-xs text-primary-500 truncate mt-0.5">关于：{contact.sourceProduct}</p>
-                  )}
-                </div>
-                {contact.unreadCount > 0 && (
-                  <span className="w-5 h-5 flex items-center justify-center bg-accent-500 text-white text-xs rounded-full shrink-0 font-medium">
-                    {contact.unreadCount}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground-800 truncate">{contact.contactName}</span>
+                      <span className="text-xs text-foreground-400 shrink-0 ml-2">{contact.lastMessageTime}</span>
+                    </div>
+                    <p className="text-xs text-foreground-400 truncate mt-0.5">{contact.lastMessage}</p>
+                    {contact.relatedItem && (
+                      <p className="text-xs text-primary-500 truncate mt-0.5">关于：{contact.relatedItem.name}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 右栏：消息区 */}
@@ -109,17 +155,16 @@ export function Chat() {
                   onClick={() => mobileShowChat ? setMobileShowChat(false) : navigate(-1)}>
                   <i className="ri-arrow-left-s-line text-lg"></i>
                 </button>
-                <img src={currentContact.avatar} alt={currentContact.name} loading="lazy" className="w-8 h-8 rounded-full" />
+                <img src={currentContact.contactAvatar} alt={currentContact.contactName} loading="lazy" className="w-8 h-8 rounded-full" />
                 <div>
-                  <span className="text-sm font-medium text-foreground-800">{currentContact.name}</span>
-                  {currentContact.isOnline && <span className="text-xs text-success ml-2">在线</span>}
+                  <span className="text-sm font-medium text-foreground-800">{currentContact.contactName}</span>
                 </div>
               </div>
 
               {/* 消息区 */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.map((msg) => {
-                  const isMe = msg.senderId === 'me'
+                  const isMe = msg.senderId === user?.id
                   return (
                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${
@@ -142,7 +187,7 @@ export function Chat() {
                     className="flex-1 px-4 py-2.5 bg-background-100 rounded-xl border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none text-sm transition-all duration-200"
                     placeholder="输入消息..." />
                   <button onClick={handleSend} disabled={!messageText.trim()}
-                    className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 ${
+                    className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
                       messageText.trim()
                         ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-95'
                         : 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
@@ -153,7 +198,6 @@ export function Chat() {
               </div>
             </>
           ) : (
-            /* 未选择联系人：引导占位 */
             <div className="flex-1 flex flex-col items-center justify-center">
               <div className="w-20 h-20 flex items-center justify-center bg-background-200 rounded-2xl mb-4">
                 <i className="ri-chat-3-line text-3xl text-secondary-400"></i>

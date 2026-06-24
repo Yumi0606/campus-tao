@@ -1,21 +1,65 @@
+import { postApi, fileApi } from '@/api'
+import { useToast } from '@/components/base/Toast'
+
 interface PublishPostModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export function PublishPostModal({ isOpen, onClose }: PublishPostModalProps) {
+export function PublishPostModal({ isOpen, onClose, onSuccess }: PublishPostModalProps) {
+  const { showToast } = useToast()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [content, setContent] = useState('')
-  const [tagsInput, setTagsInput] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const categories = ['选课攻略', '活动通知', '学习交流', '兼职招聘', '失物招领', '生活杂谈', '其他']
+  const categories = ['求助', '二手', '生活', '学习', '活动', '综合']
   const canSubmit = title.length > 0 && category && content.length > 0
-  const parsedTags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0).slice(0, 3)
 
-  const resetForm = () => { setTitle(''); setCategory(''); setContent(''); setTagsInput(''); setSuccess(false) }
-  const handleSubmit = () => { if (!canSubmit) return; setSuccess(true); setTimeout(() => { resetForm(); onClose() }, 2000) }
+  const resetForm = () => {
+    setTitle(''); setCategory(''); setContent(''); setImageFile(null); setImagePreview(null)
+    setSubmitting(false); setSuccess(false)
+  }
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return
+    setSubmitting(true)
+    try {
+      let images: string[] = []
+      if (imageFile) {
+        const url = await fileApi.upload(imageFile)
+        images = [url]
+      }
+      await postApi.publish({
+        title,
+        content,
+        board: category,
+        images,
+      })
+      setSuccess(true)
+      showToast('发布成功', 'success')
+      onSuccess?.()
+      setTimeout(() => { resetForm(); onClose() }, 2000)
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '发布失败', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   useEffect(() => { if (!isOpen) resetForm() }, [isOpen])
   if (!isOpen) return null
 
@@ -38,7 +82,7 @@ export function PublishPostModal({ isOpen, onClose }: PublishPostModalProps) {
           <>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-foreground-800">发布帖子</h3>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-100 hover:text-foreground-600 transition-all duration-200" onClick={onClose}>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-100 hover:text-foreground-600 transition-all duration-200 cursor-pointer" onClick={onClose}>
                 <i className="ri-close-line text-lg"></i>
               </button>
             </div>
@@ -66,17 +110,23 @@ export function PublishPostModal({ isOpen, onClose }: PublishPostModalProps) {
               <p className="text-xs text-foreground-400 mt-1 text-right">{content.length}/500</p>
             </div>
 
+            {/* 图片上传 */}
             <div className="mb-5">
-              <label className="block text-sm font-medium text-foreground-700 mb-2">标签（最多3个）</label>
-              <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
-                className={inputClass} placeholder="逗号分隔，如：选课,攻略,避坑" />
-              {parsedTags.length > 0 && (
-                <div className="flex gap-2 mt-2">
-                  {parsedTags.map((tag) => (
-                    <span key={tag} className="text-xs px-2.5 py-1 bg-secondary-100 text-secondary-600 rounded-lg font-medium">#{tag}</span>
-                  ))}
-                </div>
-              )}
+              <label className="block text-sm font-medium text-foreground-700 mb-2">图片（选填）</label>
+              <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" id="post-image-input" />
+              <label htmlFor="post-image-input"
+                className="block border-2 border-dashed border-secondary-300 rounded-xl p-4 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition-all duration-200">
+                {imagePreview ? (
+                  <img src={imagePreview} alt="预览" className="w-full h-32 object-cover rounded-lg" />
+                ) : (
+                  <div className="py-4">
+                    <div className="w-10 h-10 flex items-center justify-center mx-auto mb-2 bg-background-200 rounded-xl">
+                      <i className="ri-image-add-line text-xl text-secondary-400"></i>
+                    </div>
+                    <p className="text-sm text-foreground-500">点击上传图片</p>
+                  </div>
+                )}
+              </label>
             </div>
 
             <div className="bg-primary-50 rounded-xl p-3 mb-6">
@@ -86,11 +136,11 @@ export function PublishPostModal({ isOpen, onClose }: PublishPostModalProps) {
               </p>
             </div>
 
-            <button disabled={!canSubmit}
-              className={`w-full py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium ${
-                canSubmit ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]' : 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
+            <button disabled={!canSubmit || submitting}
+              className={`w-full py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium cursor-pointer ${
+                canSubmit && !submitting ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]' : 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
               }`} onClick={handleSubmit}>
-              发布帖子
+              {submitting ? '发布中...' : '发布帖子'}
             </button>
           </>
         )}

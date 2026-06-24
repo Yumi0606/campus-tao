@@ -1,48 +1,75 @@
+import { groupBuyApi, fileApi } from '@/api'
+import { useToast } from '@/components/base/Toast'
+
 interface PublishGroupBuyModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export function PublishGroupBuyModal({ isOpen, onClose }: PublishGroupBuyModalProps) {
-  const [image, setImage] = useState<string | null>(null)
+export function PublishGroupBuyModal({ isOpen, onClose, onSuccess }: PublishGroupBuyModalProps) {
+  const { showToast } = useToast()
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [groupPrice, setGroupPrice] = useState('')
   const [originalPrice, setOriginalPrice] = useState('')
   const [minMembers, setMinMembers] = useState('2')
   const [deadline, setDeadline] = useState('')
-  const [pickupLocation, setPickupLocation] = useState('')
   const [description, setDescription] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const canSubmit = title.length > 0 && groupPrice && originalPrice && minMembers && deadline && pickupLocation && description.length > 0
+  const canSubmit = title.length > 0 && groupPrice && originalPrice && minMembers && deadline && description.length > 0
 
   const resetForm = () => {
-    setImage(null); setTitle(''); setGroupPrice(''); setOriginalPrice('')
-    setMinMembers('2'); setDeadline(''); setPickupLocation(''); setDescription(''); setSuccess(false)
+    setImageFile(null); setImagePreview(null); setTitle(''); setGroupPrice(''); setOriginalPrice('')
+    setMinMembers('2'); setDeadline(''); setDescription(''); setSubmitting(false); setSuccess(false)
   }
 
-  const handleSubmit = () => {
-    if (!canSubmit) return
-    setSuccess(true)
-    setTimeout(() => { resetForm(); onClose() }, 2000)
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return
+    setSubmitting(true)
+    try {
+      let images: string[] = []
+      if (imageFile) {
+        const url = await fileApi.upload(imageFile)
+        images = [url]
+      }
+      await groupBuyApi.create({
+        name: title,
+        originalPrice: Number(originalPrice),
+        discountPrice: Number(groupPrice),
+        minPeople: Number(minMembers),
+        quantity: Number(minMembers),
+        endTime: new Date(deadline).toISOString(),
+        description,
+        images,
+      })
+      setSuccess(true)
+      showToast('发起成功', 'success')
+      onSuccess?.()
+      setTimeout(() => { resetForm(); onClose() }, 2000)
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '发起失败', 'error')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   useEffect(() => { if (!isOpen) resetForm() }, [isOpen])
   if (!isOpen) return null
 
   const inputClass = "w-full px-4 py-2.5 bg-background-100 rounded-xl border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none text-sm transition-all duration-200"
-
-  // 图片上传处理
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImage(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground-950/50 backdrop-blur-sm"
@@ -61,22 +88,19 @@ export function PublishGroupBuyModal({ isOpen, onClose }: PublishGroupBuyModalPr
           <>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-foreground-800">发起拼团</h3>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-100 hover:text-foreground-600 transition-all duration-200" onClick={onClose}>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-100 hover:text-foreground-600 transition-all duration-200 cursor-pointer" onClick={onClose}>
                 <i className="ri-close-line text-lg"></i>
               </button>
             </div>
 
-            {/* 图片上传 — 虚线框 + file input + 预览 */}
+            {/* 图片上传 */}
             <div className="mb-5">
               <label className="block text-sm font-medium text-foreground-700 mb-2">商品图片</label>
-              <input
-                type="file" accept="image/*" id="groupbuy-image" className="hidden"
-                onChange={handleImageChange} />
-              <label
-                htmlFor="groupbuy-image"
+              <input type="file" accept="image/*" id="groupbuy-image" className="hidden" onChange={handleImageChange} />
+              <label htmlFor="groupbuy-image"
                 className="block border-2 border-dashed border-secondary-300 rounded-xl p-4 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition-all duration-200">
-                {image ? (
-                  <img src={image} alt="预览" className="w-full h-32 object-cover rounded-lg" />
+                {imagePreview ? (
+                  <img src={imagePreview} alt="预览" className="w-full h-32 object-cover rounded-lg" />
                 ) : (
                   <div className="py-4">
                     <div className="w-10 h-10 flex items-center justify-center mx-auto mb-2 bg-background-200 rounded-xl">
@@ -141,15 +165,6 @@ export function PublishGroupBuyModal({ isOpen, onClose }: PublishGroupBuyModalPr
               </div>
             </div>
 
-            {/* 取货地点 */}
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-foreground-700 mb-2">
-                取货地点 <span className="text-accent-500">*</span>
-              </label>
-              <input type="text" value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
-                className={inputClass} placeholder="请输入取货地点" />
-            </div>
-
             {/* 团购说明 */}
             <div className="mb-5">
               <label className="block text-sm font-medium text-foreground-700 mb-2">
@@ -169,11 +184,11 @@ export function PublishGroupBuyModal({ isOpen, onClose }: PublishGroupBuyModalPr
             </div>
 
             {/* 提交按钮 */}
-            <button disabled={!canSubmit}
-              className={`w-full py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium ${
-                canSubmit ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]' : 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
+            <button disabled={!canSubmit || submitting}
+              className={`w-full py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium cursor-pointer ${
+                canSubmit && !submitting ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]' : 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
               }`} onClick={handleSubmit}>
-              发起拼团
+              {submitting ? '发起中...' : '发起拼团'}
             </button>
           </>
         )}

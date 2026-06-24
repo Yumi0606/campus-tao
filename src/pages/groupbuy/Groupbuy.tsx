@@ -1,21 +1,59 @@
+import { groupBuyApi } from '@/api'
+import type { GroupBuyInfo } from '@/api/types'
 import { GroupBuyCard } from '@/components/base/GroupBuyCard'
 import { PublishGroupBuyModal } from './components/PublishGroupBuyModal'
-import { groupBuys, groupBuyStatuses } from '@/mocks/groupbuy'
+import { useAuth } from '@/components/base/Auth'
+import { useToast } from '@/components/base/Toast'
 
 export function Groupbuy() {
+  const { user } = useAuth()
+  const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('全部')
+  const [selectedStatus, setSelectedStatus] = useState<number | null>(null)
   const [showPublishModal, setShowPublishModal] = useState(false)
   const [showMyOnly, setShowMyOnly] = useState(false)
 
-  const currentUserName = '吃货团长'
+  const [groupBuys, setGroupBuys] = useState<GroupBuyInfo[]>([])
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const pageSize = 10
 
-  const filteredGroupBuys = groupBuys.filter((gb) => {
-    const matchesSearch = gb.title.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = selectedStatus === '全部' || gb.status === selectedStatus
-    const matchesMy = !showMyOnly || gb.initiator.name === currentUserName
-    return matchesSearch && matchesStatus && matchesMy
-  })
+  const fetchGroupBuys = async (p: number = page) => {
+    setLoading(true)
+    try {
+      const keywords = searchQuery.trim() ? [searchQuery.trim()] : undefined
+      const result = await groupBuyApi.page(p, pageSize, {
+        status: selectedStatus ?? undefined,
+        keywords,
+      })
+      setGroupBuys(result.records)
+      setTotal(result.total)
+      setPage(p)
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '加载失败', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchGroupBuys(1) }, [selectedStatus])
+  useEffect(() => {
+    const timer = setTimeout(() => fetchGroupBuys(1), 400)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const totalPages = Math.ceil(total / pageSize)
+  const displayItems = showMyOnly
+    ? groupBuys.filter((gb) => gb.userId === user?.id)
+    : groupBuys
+
+  const statusFilters = [
+    { label: '全部', value: null },
+    { label: '进行中', value: 0 },
+    { label: '已成团', value: 1 },
+    { label: '已结束', value: 2 },
+  ]
 
   return (
     <div className="min-h-screen pt-20 pb-12 px-4">
@@ -27,7 +65,7 @@ export function Groupbuy() {
             <p className="text-sm text-foreground-500 mt-1">一起买更便宜，省钱购物新方式</p>
           </div>
           <button
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium cursor-pointer"
             onClick={() => setShowPublishModal(true)}
           >
             <i className="ri-add-line"></i>
@@ -49,18 +87,18 @@ export function Groupbuy() {
 
         {/* 状态筛选标签 */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
-          {groupBuyStatuses.map((status) => (
-            <button key={status} onClick={() => setSelectedStatus(status)}
-              className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium ${
-                selectedStatus === status
+          {statusFilters.map((s) => (
+            <button key={s.label} onClick={() => setSelectedStatus(s.value)}
+              className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium cursor-pointer ${
+                selectedStatus === s.value
                   ? 'bg-primary-500 text-white'
                   : 'bg-background-100 text-foreground-500 hover:bg-background-200 hover:text-foreground-700'
               }`}>
-              {status}
+              {s.label}
             </button>
           ))}
           <button onClick={() => setShowMyOnly(!showMyOnly)}
-            className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium ${
+            className={`px-4 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap font-medium cursor-pointer ${
               showMyOnly ? 'bg-accent-500 text-white' : 'bg-background-100 text-foreground-500 hover:bg-accent-50 hover:text-accent-500'
             }`}>
             我的
@@ -68,12 +106,31 @@ export function Groupbuy() {
         </div>
 
         {/* 拼团列表 */}
-        {filteredGroupBuys.length > 0 ? (
-          <div className="flex flex-col gap-4 mb-12">
-            {filteredGroupBuys.map((gb) => (
-              <GroupBuyCard key={gb.id} groupBuy={gb} />
-            ))}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <i className="ri-loader-4-line text-3xl text-primary-500 animate-spin"></i>
           </div>
+        ) : displayItems.length > 0 ? (
+          <>
+            <div className="flex flex-col gap-4 mb-12">
+              {displayItems.map((gb) => (
+                <GroupBuyCard key={gb.id} groupBuy={gb} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <button onClick={() => fetchGroupBuys(page - 1)} disabled={page <= 1}
+                  className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer bg-background-100 text-foreground-600 hover:bg-background-200 disabled:opacity-40 disabled:cursor-not-allowed">
+                  上一页
+                </button>
+                <span className="text-sm text-foreground-500">{page} / {totalPages}</span>
+                <button onClick={() => fetchGroupBuys(page + 1)} disabled={page >= totalPages}
+                  className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer bg-background-100 text-foreground-600 hover:bg-background-200 disabled:opacity-40 disabled:cursor-not-allowed">
+                  下一页
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-20 mb-12">
             <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-background-200 rounded-2xl">
@@ -106,7 +163,7 @@ export function Groupbuy() {
         </div>
       </div>
 
-      <PublishGroupBuyModal isOpen={showPublishModal} onClose={() => setShowPublishModal(false)} />
+      <PublishGroupBuyModal isOpen={showPublishModal} onClose={() => setShowPublishModal(false)} onSuccess={() => fetchGroupBuys(1)} />
     </div>
   )
 }

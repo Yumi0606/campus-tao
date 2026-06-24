@@ -1,15 +1,39 @@
-import { getGroupBuyById } from '@/mocks/groupbuy'
+import { groupBuyApi } from '@/api'
+import type { GroupBuyInfo } from '@/api/types'
 import { PaymentModal } from '@/components/base/PaymentModal'
-import { useToast } from '@/components/base/Toast'
 import { Breadcrumb } from '@/components/base/Breadcrumb'
+import { useAuth } from '@/components/base/Auth'
+import { useToast } from '@/components/base/Toast'
 
 export function GroupbuyDetail() {
   const { id } = useParams()
+  const { user } = useAuth()
+  const { showToast } = useToast()
+  const [groupBuy, setGroupBuy] = useState<GroupBuyInfo | null>(null)
+  const [loading, setLoading] = useState(true)
   const [isJoined, setIsJoined] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const { showToast } = useToast()
 
-  const groupBuy = getGroupBuyById(id || '')
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    groupBuyApi.detail(Number(id))
+      .then((data) => {
+        setGroupBuy(data)
+        // 判断当前用户是否已参团
+        setIsJoined(data.participants?.some((p) => p.userId === user?.id) ?? false)
+      })
+      .catch(() => setGroupBuy(null))
+      .finally(() => setLoading(false))
+  }, [id, user?.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center pt-20">
+        <i className="ri-loader-4-line text-3xl text-primary-500 animate-spin"></i>
+      </div>
+    )
+  }
 
   if (!groupBuy) {
     return (
@@ -27,11 +51,12 @@ export function GroupbuyDetail() {
     )
   }
 
-  const isCompleted = groupBuy.status === 'completed'
-  const isEnded = groupBuy.status === 'ended'
-  const isOngoing = groupBuy.status === 'ongoing'
-  const progress = (groupBuy.currentMembers / groupBuy.minMembers) * 100
-  const savedAmount = groupBuy.originalPrice - groupBuy.groupPrice
+  const isCompleted = groupBuy.status === 1
+  const isEnded = groupBuy.status === 2 || groupBuy.status === 3
+  const isOngoing = groupBuy.status === 0
+  const isOwner = user?.id === groupBuy.userId
+  const progress = (groupBuy.currentPeople / groupBuy.minPeople) * 100
+  const savedAmount = groupBuy.originalPrice - groupBuy.discountPrice
 
   const handleShare = async () => {
     try {
@@ -42,31 +67,53 @@ export function GroupbuyDetail() {
     }
   }
 
-  const handleJoin = () => {
-    setIsJoined(!isJoined)
-    showToast(isJoined ? '已取消参团' : '已报名参团', isJoined ? 'info' : 'success')
+  const handleJoin = async () => {
+    try {
+      if (isJoined) {
+        await groupBuyApi.cancelJoin(groupBuy.id)
+        showToast('已取消参团', 'info')
+      } else {
+        await groupBuyApi.join(groupBuy.id)
+        showToast('已报名参团', 'success')
+      }
+      // 重新拉取详情
+      const data = await groupBuyApi.detail(groupBuy.id)
+      setGroupBuy(data)
+      setIsJoined(data.participants?.some((p) => p.userId === user?.id) ?? false)
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      await groupBuyApi.remove(groupBuy.id)
+      showToast('已删除拼团', 'success')
+      window.REACT_APP_NAVIGATE('/groupbuy')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '删除失败', 'error')
+    }
   }
 
   return (
     <div className="min-h-screen pt-20 pb-12 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* 面包屑 */}
         <Breadcrumb items={[
           { label: '拼团团购', to: '/groupbuy' },
-          { label: groupBuy.title.slice(0, 20) + (groupBuy.title.length > 20 ? '...' : '') },
+          { label: groupBuy.name },
         ]} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 左侧图片 */}
           <div className="relative aspect-4/3 overflow-hidden rounded-xl bg-background-100">
-            <img src={groupBuy.image} alt={groupBuy.title} loading="lazy" className="w-full h-full object-cover" />
+            <img src={groupBuy.images?.[0] || ''} alt={groupBuy.name} loading="lazy" className="w-full h-full object-cover" />
           </div>
 
           {/* 右侧信息区 */}
           <div>
             {/* 标题 + 状态 */}
             <div className="flex items-start gap-3 mb-4">
-              <h1 className="text-xl font-semibold text-foreground-800 flex-1">{groupBuy.title}</h1>
+              <h1 className="text-xl font-semibold text-foreground-800 flex-1">{groupBuy.name}</h1>
               <span className={`px-2.5 py-1 text-xs rounded-lg font-medium whitespace-nowrap ${
                 isOngoing ? 'bg-primary-100 text-primary-700' : isCompleted ? 'bg-accent-100 text-accent-600' : 'bg-secondary-100 text-foreground-400'
               }`}>
@@ -76,57 +123,53 @@ export function GroupbuyDetail() {
 
             {/* 价格 */}
             <div className="flex items-baseline gap-3 mb-4">
-              <span className="text-3xl font-bold text-accent-600">¥{groupBuy.groupPrice}</span>
+              <span className="text-3xl font-bold text-accent-600">¥{groupBuy.discountPrice}</span>
               <span className="text-lg text-foreground-400 line-through">¥{groupBuy.originalPrice}</span>
               {savedAmount > 0 && (
                 <span className="text-sm px-2 py-1 bg-accent-100 text-accent-600 rounded-lg font-medium">省¥{savedAmount}</span>
               )}
             </div>
 
-            {/* 进度条（大号 2.5px → h-3） */}
+            {/* 进度条 */}
             <div className="mb-4">
               <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-primary-600 font-medium">已参团 {groupBuy.currentMembers} 人</span>
-                <span className="text-foreground-400">成团需 {groupBuy.minMembers} 人，{Math.round(progress)}%</span>
+                <span className="text-primary-600 font-medium">已参团 {groupBuy.currentPeople} 人</span>
+                <span className="text-foreground-400">成团需 {groupBuy.minPeople} 人，{Math.round(progress)}%</span>
               </div>
               <div className="h-3 bg-background-200 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full transition-all duration-500 ${isCompleted ? 'bg-accent-500' : 'bg-primary-500'}`}
                   style={{ width: `${Math.min(progress, 100)}%` }} />
               </div>
-              {isOngoing && groupBuy.currentMembers < groupBuy.minMembers && (
-                <p className="text-xs text-foreground-400 mt-1.5">还差 {groupBuy.minMembers - groupBuy.currentMembers} 人成团</p>
+              {isOngoing && groupBuy.currentPeople < groupBuy.minPeople && (
+                <p className="text-xs text-foreground-400 mt-1.5">还差 {groupBuy.minPeople - groupBuy.currentPeople} 人成团</p>
               )}
             </div>
 
             {/* 团长信息 */}
             <div className="flex items-center gap-4 p-4 bg-background-100 rounded-xl mb-4">
-              <img src={groupBuy.initiator.avatar} alt={groupBuy.initiator.name} loading="lazy" className="w-12 h-12 rounded-full" />
+              <img src={groupBuy.initiator?.avatarUrl || ''} alt={groupBuy.initiator?.nickname || ''} loading="lazy" className="w-12 h-12 rounded-full" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-medium text-foreground-800">{groupBuy.initiator.name}</span>
-                  {groupBuy.initiator.isVerified && <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>}
+                  <span className="text-base font-medium text-foreground-800">{groupBuy.initiator?.nickname || groupBuy.initiator?.username}</span>
+                  {groupBuy.initiator?.studentVerified && <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>}
                   <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-600 rounded-lg font-medium">团长</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground-500 mt-0.5">
                   <i className="ri-star-fill text-warning text-xs"></i>
-                  <span>{groupBuy.initiator.rating} 分</span>
-                  <span>·</span>
-                  <span>{groupBuy.initiator.campus}</span>
+                  <span>{groupBuy.initiator?.rating || 0} 分</span>
+                  {groupBuy.initiator?.campus && <><span>·</span><span>{groupBuy.initiator.campus}</span></>}
                 </div>
               </div>
-              <Link to={`/chat/${groupBuy.initiator.id}`}
+              <Link to={`/chat/${groupBuy.initiator?.id}`}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium">
                 <i className="ri-chat-3-line"></i>私聊团长
               </Link>
             </div>
 
-            {/* 取货地点和截止时间 */}
+            {/* 截止时间 */}
             <div className="flex gap-4 mb-4">
               <span className="inline-flex items-center gap-1.5 text-sm text-foreground-500 px-2.5 py-1 bg-background-100 rounded-lg">
-                <i className="ri-map-pin-line text-xs"></i>{groupBuy.pickupLocation}
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-sm text-foreground-500 px-2.5 py-1 bg-background-100 rounded-lg">
-                <i className="ri-time-line text-xs"></i>截止 {groupBuy.deadline}
+                <i className="ri-time-line text-xs"></i>截止 {groupBuy.endTime}
               </span>
             </div>
 
@@ -138,25 +181,42 @@ export function GroupbuyDetail() {
 
             {/* 操作按钮 */}
             <div className="flex gap-3 mb-6">
-              <button disabled={isCompleted || isEnded}
-                className={`flex-1 py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium ${
-                  isCompleted || isEnded
-                    ? 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
-                    : 'bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98]'
-                }`}
-                onClick={() => setShowPaymentModal(true)}>
-                {isCompleted ? '已成团' : isEnded ? '已结束' : '立即支付'}
-              </button>
+              {isOwner ? (
+                <>
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 py-3 rounded-xl bg-secondary-200 text-foreground-600 hover:bg-error/10 hover:text-error transition-all duration-200 whitespace-nowrap font-medium cursor-pointer"
+                  >
+                    删除拼团
+                  </button>
+                </>
+              ) : (
+                <button
+                  disabled={isCompleted || isEnded}
+                  className={`flex-1 py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium cursor-pointer ${
+                    isCompleted || isEnded
+                      ? 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
+                      : 'bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98]'
+                  }`}
+                  onClick={() => setShowPaymentModal(true)}
+                >
+                  {isCompleted ? '已成团' : isEnded ? '已结束' : '立即支付'}
+                </button>
+              )}
+              {!isOwner && (
+                <button
+                  onClick={handleJoin}
+                  className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
+                    isJoined ? 'bg-primary-50 text-primary-500 ring-2 ring-primary-200' : 'bg-background-100 text-foreground-500 hover:bg-primary-50 hover:text-primary-500'
+                  }`}
+                >
+                  <i className={`${isJoined ? 'ri-user-follow-fill' : 'ri-user-add-line'} text-xl`}></i>
+                </button>
+              )}
               <button
-                className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
-                  isJoined ? 'bg-primary-50 text-primary-500 ring-2 ring-primary-200' : 'bg-background-100 text-foreground-500 hover:bg-primary-50 hover:text-primary-500'
-                }`}
-                onClick={handleJoin}>
-                <i className={`${isJoined ? 'ri-user-follow-fill' : 'ri-user-add-line'} text-xl`}></i>
-              </button>
-              <button
+                onClick={handleShare}
                 className="w-12 h-12 flex items-center justify-center rounded-xl bg-background-100 text-foreground-500 hover:bg-primary-50 hover:text-primary-500 transition-all duration-200 cursor-pointer"
-                onClick={handleShare}>
+              >
                 <i className="ri-share-line text-xl"></i>
               </button>
             </div>
@@ -173,7 +233,7 @@ export function GroupbuyDetail() {
       </div>
 
       <PaymentModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)}
-        amount={groupBuy.groupPrice} title={groupBuy.title} recipient={groupBuy.initiator.name} />
+        amount={groupBuy.discountPrice} title={groupBuy.name} recipient={groupBuy.initiator?.nickname || ''} />
     </div>
   )
 }
