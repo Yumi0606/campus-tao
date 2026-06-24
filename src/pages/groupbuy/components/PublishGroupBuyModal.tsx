@@ -1,14 +1,18 @@
 import { groupBuyApi, fileApi } from '@/api'
+import type { GroupBuyInfo } from '@/api/types'
 import { useToast } from '@/components/base/Toast'
 
 interface PublishGroupBuyModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
+  /** 传入已有拼团则为编辑模式 */
+  editGroupBuy?: GroupBuyInfo | null
 }
 
-export function PublishGroupBuyModal({ isOpen, onClose, onSuccess }: PublishGroupBuyModalProps) {
+export function PublishGroupBuyModal({ isOpen, onClose, onSuccess, editGroupBuy }: PublishGroupBuyModalProps) {
   const { showToast } = useToast()
+  const isEdit = !!editGroupBuy
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [title, setTitle] = useState('')
@@ -40,12 +44,12 @@ export function PublishGroupBuyModal({ isOpen, onClose, onSuccess }: PublishGrou
     if (!canSubmit || submitting) return
     setSubmitting(true)
     try {
-      let images: string[] = []
+      let images: string[] = editGroupBuy?.images || []
       if (imageFile) {
         const url = await fileApi.upload(imageFile)
         images = [url]
       }
-      await groupBuyApi.create({
+      const payload = {
         name: title,
         originalPrice: Number(originalPrice),
         discountPrice: Number(groupPrice),
@@ -54,19 +58,40 @@ export function PublishGroupBuyModal({ isOpen, onClose, onSuccess }: PublishGrou
         endTime: new Date(deadline).toISOString(),
         description,
         images,
-      })
+      }
+      if (isEdit && editGroupBuy) {
+        await groupBuyApi.update(editGroupBuy.id, payload)
+      } else {
+        await groupBuyApi.create(payload)
+      }
       setSuccess(true)
-      showToast('发起成功', 'success')
+      showToast(isEdit ? '修改成功！' : '拼团发起成功！', 'success')
       onSuccess?.()
       setTimeout(() => { resetForm(); onClose() }, 2000)
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : '发起失败', 'error')
+      showToast(e instanceof Error ? e.message : (isEdit ? '修改失败' : '发起失败'), 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
-  useEffect(() => { if (!isOpen) resetForm() }, [isOpen])
+  useEffect(() => {
+    if (!isOpen) return
+    if (editGroupBuy) {
+      setTitle(editGroupBuy.name)
+      setGroupPrice(String(editGroupBuy.discountPrice))
+      setOriginalPrice(String(editGroupBuy.originalPrice))
+      setMinMembers(String(editGroupBuy.minPeople))
+      // 将 ISO 时间转为 datetime-local 格式 (YYYY-MM-DDTHH:mm)
+      const dt = new Date(editGroupBuy.endTime)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      setDeadline(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`)
+      setDescription(editGroupBuy.description || '')
+      setImagePreview(editGroupBuy.images?.[0] || null)
+    } else {
+      resetForm()
+    }
+  }, [isOpen, editGroupBuy])
   if (!isOpen) return null
 
   const inputClass = "w-full px-4 py-2.5 bg-background-100 rounded-xl border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none text-sm transition-all duration-200"
@@ -81,13 +106,13 @@ export function PublishGroupBuyModal({ isOpen, onClose, onSuccess }: PublishGrou
             <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-success/10 rounded-2xl">
               <i className="ri-check-line text-4xl text-success"></i>
             </div>
-            <h3 className="text-lg font-semibold text-foreground-800 mb-2">拼团发起成功！</h3>
+            <h3 className="text-lg font-semibold text-foreground-800 mb-2">{isEdit ? '修改成功！' : '拼团发起成功！'}</h3>
             <p className="text-sm text-foreground-500">快邀请好友加入吧</p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-foreground-800">发起拼团</h3>
+              <h3 className="text-lg font-semibold text-foreground-800">{isEdit ? '编辑拼团' : '发起拼团'}</h3>
               <button className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-100 hover:text-foreground-600 transition-all duration-200 cursor-pointer" onClick={onClose}>
                 <i className="ri-close-line text-lg"></i>
               </button>
@@ -160,7 +185,7 @@ export function PublishGroupBuyModal({ isOpen, onClose, onSuccess }: PublishGrou
                 <label className="block text-sm font-medium text-foreground-700 mb-2">
                   截止时间 <span className="text-accent-500">*</span>
                 </label>
-                <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
+                <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)}
                   className={inputClass + " cursor-pointer"} />
               </div>
             </div>
@@ -188,7 +213,7 @@ export function PublishGroupBuyModal({ isOpen, onClose, onSuccess }: PublishGrou
               className={`w-full py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium cursor-pointer ${
                 canSubmit && !submitting ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]' : 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
               }`} onClick={handleSubmit}>
-              {submitting ? '发起中...' : '发起拼团'}
+              {submitting ? (isEdit ? '保存中...' : '发起中...') : (isEdit ? '保存修改' : '发起拼团')}
             </button>
           </>
         )}

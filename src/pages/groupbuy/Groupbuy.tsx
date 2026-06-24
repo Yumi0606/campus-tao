@@ -27,8 +27,8 @@ export function Groupbuy() {
         status: selectedStatus ?? undefined,
         keywords,
       })
-      setGroupBuys(result.records)
-      setTotal(result.total)
+      setGroupBuys(result?.records ?? [])
+      setTotal(result?.total ?? 0)
       setPage(p)
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : '加载失败', 'error')

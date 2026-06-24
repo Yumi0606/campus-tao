@@ -4,6 +4,7 @@ import { PaymentModal } from '@/components/base/PaymentModal'
 import { Breadcrumb } from '@/components/base/Breadcrumb'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { PublishGroupBuyModal } from '../components/PublishGroupBuyModal'
 
 export function GroupbuyDetail() {
   const { id } = useParams()
@@ -13,6 +14,7 @@ export function GroupbuyDetail() {
   const [loading, setLoading] = useState(true)
   const [isJoined, setIsJoined] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -23,9 +25,12 @@ export function GroupbuyDetail() {
         // 判断当前用户是否已参团
         setIsJoined(data.participants?.some((p) => p.userId === user?.id) ?? false)
       })
-      .catch(() => setGroupBuy(null))
+      .catch((e: unknown) => {
+        setGroupBuy(null)
+        showToast(e instanceof Error ? e.message : '加载失败', 'error')
+      })
       .finally(() => setLoading(false))
-  }, [id, user?.id])
+  }, [id, user?.id, showToast])
 
   if (loading) {
     return (
@@ -184,6 +189,12 @@ export function GroupbuyDetail() {
               {isOwner ? (
                 <>
                   <button
+                    onClick={() => setShowEditModal(true)}
+                    className="flex-1 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98] transition-all duration-200 whitespace-nowrap font-medium cursor-pointer"
+                  >
+                    编辑拼团
+                  </button>
+                  <button
                     onClick={handleDelete}
                     className="flex-1 py-3 rounded-xl bg-secondary-200 text-foreground-600 hover:bg-error/10 hover:text-error transition-all duration-200 whitespace-nowrap font-medium cursor-pointer"
                   >
@@ -234,6 +245,18 @@ export function GroupbuyDetail() {
 
       <PaymentModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)}
         amount={groupBuy.discountPrice} title={groupBuy.name} recipient={groupBuy.initiator?.nickname || ''} />
+
+      <PublishGroupBuyModal isOpen={showEditModal} onClose={() => setShowEditModal(false)}
+        editGroupBuy={groupBuy}
+        onSuccess={async () => {
+          try {
+            const data = await groupBuyApi.detail(groupBuy.id)
+            setGroupBuy(data)
+            setShowEditModal(false)
+          } catch (e: unknown) {
+            showToast(e instanceof Error ? e.message : '刷新失败', 'error')
+          }
+        }} />
     </div>
   )
 }

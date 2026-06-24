@@ -20,18 +20,18 @@ export function Profile() {
     if (activeTab !== 'published' || !user) return
     itemApi.page(1, 50)
       .then((result) => {
-        // 后端无 userId 筛选，前端过滤
-        setMyItems(result.records.filter((item) => item.userId === user.id))
+        const records = result?.records ?? []
+        setMyItems(records.filter((item) => item.userId === user.id))
       })
-      .catch(() => showToast('加载失败', 'error'))
+      .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载失败', 'error'))
   }, [activeTab, user?.id])
 
   // 加载"我的收藏"
   useEffect(() => {
     if (activeTab !== 'favorites') return
     favoriteApi.myFavorites(1, 50)
-      .then((result) => setFavorites(result.records))
-      .catch(() => showToast('加载失败', 'error'))
+      .then((result) => setFavorites(result?.records ?? []))
+      .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载失败', 'error'))
   }, [activeTab])
 
   const handleRemoveFavorite = async (targetId: number, targetType: string) => {
@@ -39,8 +39,8 @@ export function Profile() {
       await favoriteApi.cancel(targetType as 'item' | 'group_buy' | 'post', targetId)
       setFavorites(favorites.filter((f) => f.targetId !== targetId))
       showToast('已取消收藏', 'info')
-    } catch {
-      showToast('操作失败', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
     }
   }
 

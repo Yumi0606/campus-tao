@@ -28,8 +28,8 @@ export function PostCard({ post }: PostCardProps) {
         showToast('已点赞', 'success')
       }
       setIsLiked(!isLiked)
-    } catch {
-      showToast('操作失败', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
     }
   }
 

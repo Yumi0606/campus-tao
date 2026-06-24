@@ -30,8 +30,8 @@ export function Forum() {
         keywords,
         sortMode,
       })
-      setPosts(result.records)
-      setTotal(result.total)
+      setPosts(result?.records ?? [])
+      setTotal(result?.total ?? 0)
       setPage(p)
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : '加载失败', 'error')

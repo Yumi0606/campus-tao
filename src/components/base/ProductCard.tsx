@@ -31,8 +31,8 @@ export function ProductCard({ item, liked = false, onLikeToggle }: ProductCardPr
         showToast('已收藏', 'success')
       }
       onLikeToggle?.(item.id)
-    } catch {
-      showToast('操作失败', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
     }
   }
 

@@ -8,6 +8,9 @@ export function EditProfile() {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [studentCardFile, setStudentCardFile] = useState<File | null>(null)
+  const [studentCardPreview, setStudentCardPreview] = useState<string | null>(null)
+  const [uploadingCard, setUploadingCard] = useState(false)
 
   const [form, setForm] = useState({
     nickname: user?.nickname || '',
@@ -31,8 +34,32 @@ export function EditProfile() {
       await userApi.updateInfo({ avatarUrl: url })
       await refreshUser()
       showToast('头像已更新', 'success')
-    } catch {
-      showToast('上传失败', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '上传失败', 'error')
+    }
+  }
+
+  const handleStudentCardSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setStudentCardFile(file)
+    setStudentCardPreview(URL.createObjectURL(file))
+  }
+
+  const handleStudentVerify = async () => {
+    if (!studentCardFile) return
+    setUploadingCard(true)
+    try {
+      const url = await fileApi.upload(studentCardFile)
+      await userApi.verifyStudent(url)
+      await refreshUser()
+      setStudentCardFile(null)
+      setStudentCardPreview(null)
+      showToast('学生认证已提交', 'success')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '认证提交失败', 'error')
+    } finally {
+      setUploadingCard(false)
     }
   }
 
@@ -130,6 +157,50 @@ export function EditProfile() {
                     className={inputClass} placeholder="微信号 / QQ号" />
                 </div>
               </div>
+            </div>
+
+            {/* 学生认证 */}
+            <div className="bg-background-100 rounded-xl p-6 mb-6">
+              <h3 className="text-base font-semibold text-foreground-800 mb-4">学生认证</h3>
+              {user.studentVerified ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <i className="ri-shield-check-fill text-success text-lg"></i>
+                    <span className="text-sm font-medium text-success">已认证</span>
+                  </div>
+                  {user.studentCardUrl && (
+                    <div className="w-40 h-28 rounded-xl overflow-hidden border border-secondary-200">
+                      <img src={user.studentCardUrl} alt="学生证" loading="lazy"
+                        className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-foreground-500">上传学生证照片完成认证，认证后可发布商品和拼团</p>
+                  <div>
+                    <input type="file" accept="image/*" onChange={handleStudentCardSelect} className="hidden" id="student-card-input" />
+                    <label htmlFor="student-card-input"
+                      className="block w-40 h-28 rounded-xl border-2 border-dashed border-secondary-300 hover:border-primary-400 transition-all duration-200 cursor-pointer overflow-hidden">
+                      {studentCardPreview ? (
+                        <img src={studentCardPreview} alt="学生证预览" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-foreground-400">
+                          <i className="ri-image-add-line text-2xl mb-1"></i>
+                          <span className="text-xs">选择照片</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                  <button onClick={handleStudentVerify} disabled={!studentCardFile || uploadingCard}
+                    className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all duration-200 whitespace-nowrap font-medium text-sm cursor-pointer ${
+                      !studentCardFile || uploadingCard ? 'bg-primary-300 text-white cursor-not-allowed' : 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]'
+                    }`}>
+                    <i className={uploadingCard ? 'ri-loader-4-line animate-spin' : 'ri-shield-check-line'}></i>
+                    {uploadingCard ? '提交中...' : '提交认证'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 修改密码 */}

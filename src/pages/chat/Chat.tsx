@@ -28,7 +28,7 @@ export function Chat() {
           setSelectedContactId(data[0].contactId)
         }
       })
-      .catch(() => showToast('加载会话失败', 'error'))
+      .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载会话失败', 'error'))
       .finally(() => setLoadingConvos(false))
   }, [])
 
@@ -37,10 +37,10 @@ export function Chat() {
     if (!selectedContactId) return
     messageApi.history(selectedContactId, 1, 100)
       .then((data) => {
-        setMessages(data.records)
+        setMessages(data?.records ?? [])
         setMobileShowChat(true)
       })
-      .catch(() => showToast('加载消息失败', 'error'))
+      .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载消息失败', 'error'))
   }, [selectedContactId])
 
   // 路由变化时切换联系人
@@ -55,18 +55,20 @@ export function Chat() {
 
   const currentContact = conversations.find((c) => c.contactId === selectedContactId)
 
-  const handleSelectContact = (id: number) => {
+  const handleSelectContact = async (id: number) => {
     setSelectedContactId(id)
     // 标记未读消息为已读
     const conv = conversations.find((c) => c.contactId === id)
     if (conv && conv.unreadCount > 0) {
-      // 找到该会话中未读的消息并标记
-      messageApi.history(id, 1, conv.unreadCount)
-        .then((data) => {
-          data.records
-            .filter((m) => !m.isRead && m.receiverId === user?.id)
-            .forEach((m) => messageApi.markRead(m.id))
-        })
+      try {
+        // 找到该会话中未读的消息并标记
+        const data = await messageApi.history(id, 1, conv.unreadCount)
+        data?.records
+          ?.filter((m) => !m.isRead && m.receiverId === user?.id)
+          .forEach((m) => messageApi.markRead(m.id))
+      } catch (e: unknown) {
+        showToast(e instanceof Error ? e.message : '标记已读失败', 'error')
+      }
       // 更新本地未读数
       setConversations((prev) =>
         prev.map((c) => c.contactId === id ? { ...c, unreadCount: 0 } : c)

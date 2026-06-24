@@ -4,6 +4,7 @@ import { PaymentModal } from '@/components/base/PaymentModal'
 import { Breadcrumb } from '@/components/base/Breadcrumb'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { PublishProductModal } from '../components/PublishProductModal'
 
 export function SecondhandDetail() {
   const { id } = useParams()
@@ -13,6 +14,7 @@ export function SecondhandDetail() {
   const [loading, setLoading] = useState(true)
   const [isLiked, setIsLiked] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
 
   useEffect(() => {
@@ -20,9 +22,12 @@ export function SecondhandDetail() {
     setLoading(true)
     itemApi.detail(Number(id))
       .then((data) => setItem(data))
-      .catch(() => setItem(null))
+      .catch((e: unknown) => {
+        setItem(null)
+        showToast(e instanceof Error ? e.message : '加载失败', 'error')
+      })
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, showToast])
 
   if (loading) {
     return (
@@ -214,6 +219,12 @@ export function SecondhandDetail() {
                   {item.status === 0 && (
                     <>
                       <button
+                        onClick={() => setShowEditModal(true)}
+                        className="flex-1 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98] transition-all duration-200 whitespace-nowrap font-medium cursor-pointer"
+                      >
+                        编辑物品
+                      </button>
+                      <button
                         onClick={handleOffShelf}
                         className="flex-1 py-3 rounded-xl bg-secondary-200 text-foreground-600 hover:bg-secondary-300 transition-all duration-200 whitespace-nowrap font-medium cursor-pointer"
                       >
@@ -277,6 +288,18 @@ export function SecondhandDetail() {
         amount={item.price}
         title={item.name}
         recipient={item.seller?.nickname || ''}
+      />
+
+      <PublishProductModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        editItem={item}
+        onSuccess={() => {
+          itemApi.detail(Number(id))
+            .then((data) => setItem(data))
+            .catch((e: unknown) => showToast(e instanceof Error ? e.message : '刷新失败', 'error'))
+          setShowEditModal(false)
+        }}
       />
     </div>
   )

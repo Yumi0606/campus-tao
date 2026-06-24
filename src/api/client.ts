@@ -32,7 +32,12 @@ client.interceptors.response.use(
       localStorage.removeItem('user')
       window.REACT_APP_NAVIGATE?.('/login')
     }
-    return Promise.reject(error)
+    // 提取后端返回的错误信息，避免只显示 axios 默认的 "Request failed with status code xxx"
+    const msg =
+      error.response?.data?.message ||
+      error.message ||
+      '网络请求失败'
+    return Promise.reject(new Error(msg))
   },
 )
 

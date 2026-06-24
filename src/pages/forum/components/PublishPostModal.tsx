@@ -1,4 +1,5 @@
 import { postApi, fileApi } from '@/api'
+import type { PostInfo } from '@/api/types'
 import { useToast } from '@/components/base/Toast'
 import { FORUM_BOARDS } from '@/constants'
 
@@ -6,10 +7,12 @@ interface PublishPostModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
+  editPost?: PostInfo | null
 }
 
-export function PublishPostModal({ isOpen, onClose, onSuccess }: PublishPostModalProps) {
+export function PublishPostModal({ isOpen, onClose, onSuccess, editPost }: PublishPostModalProps) {
   const { showToast } = useToast()
+  const isEdit = !!editPost
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [content, setContent] = useState('')
@@ -43,23 +46,40 @@ export function PublishPostModal({ isOpen, onClose, onSuccess }: PublishPostModa
       if (imageFile) {
         const url = await fileApi.upload(imageFile)
         images = [url]
+      } else if (isEdit && editPost?.images?.length) {
+        images = editPost.images
       }
-      await postApi.publish({
+      const payload = {
         title,
         content,
         board: category,
         images,
-      })
+      }
+      if (isEdit) {
+        await postApi.update(editPost!.id, payload)
+      } else {
+        await postApi.publish(payload)
+      }
       setSuccess(true)
-      showToast('发布成功', 'success')
+      showToast(isEdit ? '修改成功' : '发布成功', 'success')
       onSuccess?.()
       setTimeout(() => { resetForm(); onClose() }, 2000)
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : '发布失败', 'error')
+      showToast(e instanceof Error ? e.message : (isEdit ? '修改失败' : '发布失败'), 'error')
     } finally {
       setSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    if (isOpen && editPost) {
+      setTitle(editPost.title)
+      setCategory(editPost.board || '')
+      setContent(editPost.content)
+      setImagePreview(editPost.images?.[0] || null)
+      setImageFile(null)
+    }
+  }, [isOpen, editPost])
 
   useEffect(() => { if (!isOpen) resetForm() }, [isOpen])
   if (!isOpen) return null
@@ -76,13 +96,13 @@ export function PublishPostModal({ isOpen, onClose, onSuccess }: PublishPostModa
             <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-success/10 rounded-2xl">
               <i className="ri-check-line text-4xl text-success"></i>
             </div>
-            <h3 className="text-lg font-semibold text-foreground-800 mb-2">发布成功！</h3>
-            <p className="text-sm text-foreground-500">您的帖子已成功发布</p>
+            <h3 className="text-lg font-semibold text-foreground-800 mb-2">{isEdit ? '修改成功！' : '发布成功！'}</h3>
+            <p className="text-sm text-foreground-500">{isEdit ? '您的帖子已成功修改' : '您的帖子已成功发布'}</p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-foreground-800">发布帖子</h3>
+              <h3 className="text-lg font-semibold text-foreground-800">{isEdit ? '编辑帖子' : '发布帖子'}</h3>
               <button className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground-400 hover:bg-background-100 hover:text-foreground-600 transition-all duration-200 cursor-pointer" onClick={onClose}>
                 <i className="ri-close-line text-lg"></i>
               </button>
@@ -141,7 +161,7 @@ export function PublishPostModal({ isOpen, onClose, onSuccess }: PublishPostModa
               className={`w-full py-3 rounded-xl transition-all duration-200 whitespace-nowrap font-medium cursor-pointer ${
                 canSubmit && !submitting ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]' : 'bg-secondary-200 text-foreground-400 cursor-not-allowed'
               }`} onClick={handleSubmit}>
-              {submitting ? '发布中...' : '发布帖子'}
+              {submitting ? (isEdit ? '保存中...' : '发布中...') : (isEdit ? '保存修改' : '发布帖子')}
             </button>
           </>
         )}

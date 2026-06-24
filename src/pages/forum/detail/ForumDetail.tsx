@@ -3,6 +3,7 @@ import type { PostInfo, CommentInfo } from '@/api/types'
 import { Breadcrumb } from '@/components/base/Breadcrumb'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { PublishPostModal } from '../components/PublishPostModal'
 
 export function ForumDetail() {
   const { id } = useParams()
@@ -17,6 +18,7 @@ export function ForumDetail() {
   const [commentText, setCommentText] = useState('')
   const [commentLikes, setCommentLikes] = useState<Set<number>>(new Set())
   const [replyTo, setReplyTo] = useState<string | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -31,16 +33,17 @@ export function ForumDetail() {
         if (cancelled) return
         setPost(postData)
         setLikeCount(postData.likes)
-        setComments(commentData.records)
+        setComments(commentData?.records ?? [])
         setLoading(false)
-      } catch {
+      } catch (e: unknown) {
         if (cancelled) return
         setPost(null)
+        showToast(e instanceof Error ? e.message : '加载失败', 'error')
         setLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [id])
+  }, [id, showToast])
 
   if (loading) {
     return (
@@ -80,8 +83,8 @@ export function ForumDetail() {
         showToast('已点赞', 'success')
       }
       setIsLiked(!isLiked)
-    } catch {
-      showToast('操作失败', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
     }
   }
 
@@ -107,8 +110,8 @@ export function ForumDetail() {
         else next.add(commentId)
         return next
       })
-    } catch {
-      showToast('操作失败', 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
     }
   }
 
@@ -200,11 +203,18 @@ export function ForumDetail() {
               <i className="ri-share-line"></i>分享
             </button>
             {isOwner && (
-              <button
-                onClick={handleDeletePost}
-                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-background-100 text-foreground-400 hover:bg-error/10 hover:text-error transition-all duration-200 font-medium cursor-pointer">
-                <i className="ri-delete-bin-line"></i>删除
-              </button>
+              <>
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-background-100 text-foreground-400 hover:bg-primary-50 hover:text-primary-500 transition-all duration-200 font-medium cursor-pointer">
+                  <i className="ri-edit-line"></i>编辑
+                </button>
+                <button
+                  onClick={handleDeletePost}
+                  className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-background-100 text-foreground-400 hover:bg-error/10 hover:text-error transition-all duration-200 font-medium cursor-pointer">
+                  <i className="ri-delete-bin-line"></i>删除
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -290,6 +300,21 @@ export function ForumDetail() {
             </div>
           </div>
         </div>
+
+        <PublishPostModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          editPost={post}
+          onSuccess={async () => {
+            try {
+              const postData = await postApi.detail(post.id)
+              setPost(postData)
+            } catch (e: unknown) {
+              showToast(e instanceof Error ? e.message : '刷新失败', 'error')
+            }
+            setShowEditModal(false)
+          }}
+        />
       </div>
     </div>
   )

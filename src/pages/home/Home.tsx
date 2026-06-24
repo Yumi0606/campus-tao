@@ -3,8 +3,10 @@ import type { ItemInfo, GroupBuyInfo, PostInfo } from '@/api/types'
 import { ProductCard } from '@/components/base/ProductCard'
 import { GroupBuyCard } from '@/components/base/GroupBuyCard'
 import { PostCard } from '@/components/base/PostCard'
+import { useToast } from '@/components/base/Toast'
 
 export function Home() {
+  const { showToast } = useToast()
   const [hotItems, setHotItems] = useState<ItemInfo[]>([])
   const [hotGroupBuys, setHotGroupBuys] = useState<GroupBuyInfo[]>([])
   const [hotPosts, setHotPosts] = useState<PostInfo[]>([])
@@ -12,15 +14,24 @@ export function Home() {
 
   useEffect(() => {
     Promise.all([
-      itemApi.page(1, 4).catch(() => ({ records: [], total: 0 })),
-      groupBuyApi.page(1, 3).catch(() => ({ records: [], total: 0 })),
-      postApi.page(1, 3, { sortMode: 'hot' }).catch(() => ({ records: [], total: 0 })),
+      itemApi.page(1, 4).catch((e: unknown) => {
+        showToast(e instanceof Error ? e.message : '加载失败', 'error')
+        return { records: [], total: 0 }
+      }),
+      groupBuyApi.page(1, 3).catch((e: unknown) => {
+        showToast(e instanceof Error ? e.message : '加载失败', 'error')
+        return { records: [], total: 0 }
+      }),
+      postApi.page(1, 3, { sortMode: 'hot' }).catch((e: unknown) => {
+        showToast(e instanceof Error ? e.message : '加载失败', 'error')
+        return { records: [], total: 0 }
+      }),
     ]).then(([itemsResult, gbResult, postsResult]) => {
       setHotItems(Array.isArray(itemsResult?.records) ? itemsResult.records.filter(Boolean) : [])
       setHotGroupBuys(Array.isArray(gbResult?.records) ? gbResult.records.filter(Boolean) : [])
       setHotPosts(Array.isArray(postsResult?.records) ? postsResult.records.filter(Boolean) : [])
     })
-  }, [])
+  }, [showToast])
 
   const handleLikeToggle = (itemId: number) => {
     setLikedIds((prev) => {
