@@ -1,5 +1,6 @@
 import { itemApi, fileApi } from '@/api'
 import { useToast } from '@/components/base/Toast'
+import { ITEM_CATEGORIES, CAMPUSES } from '@/constants'
 
 interface PublishProductModalProps {
   isOpen: boolean
@@ -21,8 +22,8 @@ export function PublishProductModal({ isOpen, onClose, onSuccess }: PublishProdu
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const categories = ['数码', '书籍', '服饰', '生活', '运动', '美妆', '其他']
-  const campuses = ['主校区', '东校区', '西校区', '南校区', '北校区']
+  const categories = ITEM_CATEGORIES
+  const campuses = CAMPUSES
 
   const canSubmit = title.length > 0 && category && campus && price && description.length > 0
 

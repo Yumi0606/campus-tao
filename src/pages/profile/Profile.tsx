@@ -150,14 +150,18 @@ export function Profile() {
         {activeTab === 'favorites' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {favorites.map((fav) => {
-              // 收藏的目标可能是 item/group_buy/post，统一取公共字段
-              const target = fav.target as Record<string, unknown>
+              const target = fav.target as unknown
+              const t = target as Record<string, unknown>
+              const img = (t.images as string[] | undefined)?.[0] || (t.image as string | undefined) || ''
+              const name = (t.name as string | undefined) || (t.title as string | undefined) || ''
+              const price = t.price as number | undefined
+              const discountPrice = t.discountPrice as number | undefined
               return (
                 <div key={fav.id} className="bg-background-100 rounded-xl overflow-hidden group hover:bg-background-200 transition-colors">
                   <div className="relative aspect-4/3 overflow-hidden">
                     <img
-                      src={(target.images as string[])?.[0] || (target.image as string) || ''}
-                      alt={(target.name as string) || (target.title as string) || ''}
+                      src={img}
+                      alt={name}
                       loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
@@ -168,14 +172,12 @@ export function Profile() {
                     </button>
                   </div>
                   <div className="p-3">
-                    <h3 className="text-sm font-medium text-foreground-800 truncate">
-                      {(target.name as string) || (target.title as string)}
-                    </h3>
-                    {'price' in target && (
-                      <p className="text-sm text-accent-600 font-semibold mt-1">¥{target.price}</p>
+                    <h3 className="text-sm font-medium text-foreground-800 truncate">{name}</h3>
+                    {price != null && (
+                      <p className="text-sm text-accent-600 font-semibold mt-1">¥{price}</p>
                     )}
-                    {'discountPrice' in target && (
-                      <p className="text-sm text-accent-600 font-semibold mt-1">¥{target.discountPrice}</p>
+                    {discountPrice != null && (
+                      <p className="text-sm text-accent-600 font-semibold mt-1">¥{discountPrice}</p>
                     )}
                     <p className="text-xs text-foreground-400 mt-1">{fav.createdAt}</p>
                   </div>

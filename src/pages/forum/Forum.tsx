@@ -4,6 +4,7 @@ import { PostCard } from '@/components/base/PostCard'
 import { PublishPostModal } from './components/PublishPostModal'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { FORUM_BOARDS } from '@/constants'
 
 export function Forum() {
   const { user } = useAuth()
@@ -50,7 +51,7 @@ export function Forum() {
     ? posts.filter((p) => p.userId === user?.id)
     : posts
 
-  const boards = ['全部', '求助', '二手', '生活', '学习', '活动', '综合']
+  const boards = ['全部', ...FORUM_BOARDS]
 
   return (
     <div className="min-h-screen pt-20 pb-12 px-4">

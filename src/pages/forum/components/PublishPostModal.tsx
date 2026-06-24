@@ -1,5 +1,6 @@
 import { postApi, fileApi } from '@/api'
 import { useToast } from '@/components/base/Toast'
+import { FORUM_BOARDS } from '@/constants'
 
 interface PublishPostModalProps {
   isOpen: boolean
@@ -17,7 +18,7 @@ export function PublishPostModal({ isOpen, onClose, onSuccess }: PublishPostModa
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const categories = ['求助', '二手', '生活', '学习', '活动', '综合']
+  const categories = FORUM_BOARDS
   const canSubmit = title.length > 0 && category && content.length > 0
 
   const resetForm = () => {

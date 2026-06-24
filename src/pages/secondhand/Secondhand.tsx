@@ -4,6 +4,7 @@ import { ProductCard } from '@/components/base/ProductCard'
 import { PublishProductModal } from './components/PublishProductModal'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { ITEM_CATEGORIES, CAMPUSES } from '@/constants'
 
 export function Secondhand() {
   const { user } = useAuth()
@@ -76,8 +77,8 @@ export function Secondhand() {
     ? items.filter((item) => item.userId === user?.id)
     : items
 
-  const categories = ['全部', '数码', '书籍', '服饰', '生活', '运动', '美妆', '其他']
-  const campuses = ['全部校区', '主校区', '东校区', '西校区', '南校区', '北校区']
+  const categories = ['全部', ...ITEM_CATEGORIES]
+  const campuses = ['全部校区', ...CAMPUSES]
 
   return (
     <div className="min-h-screen pt-20 pb-12 px-4">
