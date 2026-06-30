@@ -16,6 +16,56 @@ client.interceptors.request.use((config) => {
   return config
 })
 
+/**
+ * 尝试将 JSON 字符串解析为数组，已经是数组的直接返回
+ * 后端 images/keywords 字段可能返回 "[]" 字符串而非真正的数组
+ */
+function parseJsonField(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : [] }
+    catch { return [] }
+  }
+  return []
+}
+
+/**
+ * 规范化后端返回的对象数据，将字符串类型的 images/keywords 解析为数组
+ * 适用于 Item、GroupBuy、Post 等实体
+ */
+function normalizeEntity(item: unknown): unknown {
+  if (!item || typeof item !== 'object') return item
+  const obj = item as Record<string, unknown>
+  if ('images' in obj) obj.images = parseJsonField(obj.images)
+  if ('keywords' in obj) obj.keywords = parseJsonField(obj.keywords)
+  return obj
+}
+
+/**
+ * 递归规范化响应数据中的实体字段
+ * 处理分页列表中的 list 项和单个实体对象
+ */
+function normalizeData(data: unknown): unknown {
+  if (data === null || data === undefined) return data
+  if (typeof data !== 'object') return data
+  const obj = data as Record<string, unknown>
+
+  // 数组结构：逐项规范化（如会话列表）
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeEntity)
+  }
+
+  // 分页结构：{ list: [...] }
+  if ('list' in obj && Array.isArray(obj.list)) {
+    obj.list = obj.list.map(normalizeEntity)
+    return data
+  }
+
+  // 单个实体对象（详情接口），统一规范化 images/keywords
+  normalizeEntity(obj)
+  return data
+}
+
 // 响应拦截器：解包 res.data.data，API 函数直接拿到业务数据
 client.interceptors.response.use(
   (response) => {
@@ -23,8 +73,8 @@ client.interceptors.response.use(
     if (result.code !== 200) {
       return Promise.reject(new Error(result.message || '请求失败'))
     }
-    // 直接返回业务数据，调用方无需再 .data.data
-    return result.data as never
+    // 规范化数据（解析 JSON 字符串字段等），然后直接返回业务数据
+    return normalizeData(result.data) as never
   },
   (error) => {
     if (error.response?.status === 401) {

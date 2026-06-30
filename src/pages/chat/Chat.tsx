@@ -2,6 +2,7 @@ import { messageApi } from '@/api'
 import type { ConversationInfo, MessageInfo } from '@/api/types'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeAvatar } from '@/components/base/FallbackImage'
 
 export function Chat() {
   const { contactId } = useParams()
@@ -37,7 +38,7 @@ export function Chat() {
     if (!selectedContactId) return
     messageApi.history(selectedContactId, 1, 100)
       .then((data) => {
-        setMessages(data?.records ?? [])
+        setMessages(data?.list ?? [])
         setMobileShowChat(true)
       })
       .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载消息失败', 'error'))
@@ -63,8 +64,8 @@ export function Chat() {
       try {
         // 找到该会话中未读的消息并标记
         const data = await messageApi.history(id, 1, conv.unreadCount)
-        data?.records
-          ?.filter((m) => !m.isRead && m.receiverId === user?.id)
+        data?.list
+          ?.filter((m) => m.isRead === 0 && m.receiverId === user?.userId)
           .forEach((m) => messageApi.markRead(m.id))
       } catch (e: unknown) {
         showToast(e instanceof Error ? e.message : '标记已读失败', 'error')
@@ -122,7 +123,7 @@ export function Chat() {
                       : 'hover:bg-background-100'
                   }`}>
                   <div className="relative">
-                    <img src={contact.contactAvatar} alt={contact.contactName} loading="lazy" className="w-10 h-10 rounded-full" />
+                    <SafeAvatar src={contact.avatarUrl} alt={contact.nickname} className="w-10 h-10 rounded-full" />
                     {contact.unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-accent-500 text-white text-xs rounded-full shrink-0 font-medium">
                         {contact.unreadCount}
@@ -131,13 +132,10 @@ export function Chat() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground-800 truncate">{contact.contactName}</span>
+                      <span className="text-sm font-medium text-foreground-800 truncate">{contact.nickname}</span>
                       <span className="text-xs text-foreground-400 shrink-0 ml-2">{contact.lastMessageTime}</span>
                     </div>
                     <p className="text-xs text-foreground-400 truncate mt-0.5">{contact.lastMessage}</p>
-                    {contact.relatedItem && (
-                      <p className="text-xs text-primary-500 truncate mt-0.5">关于：{contact.relatedItem.name}</p>
-                    )}
                   </div>
                 </button>
               ))}
@@ -157,16 +155,16 @@ export function Chat() {
                   onClick={() => mobileShowChat ? setMobileShowChat(false) : navigate(-1)}>
                   <i className="ri-arrow-left-s-line text-lg"></i>
                 </button>
-                <img src={currentContact.contactAvatar} alt={currentContact.contactName} loading="lazy" className="w-8 h-8 rounded-full" />
+                <SafeAvatar src={currentContact.avatarUrl} alt={currentContact.nickname} className="w-8 h-8 rounded-full" />
                 <div>
-                  <span className="text-sm font-medium text-foreground-800">{currentContact.contactName}</span>
+                  <span className="text-sm font-medium text-foreground-800">{currentContact.nickname}</span>
                 </div>
               </div>
 
               {/* 消息区 */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.map((msg) => {
-                  const isMe = msg.senderId === user?.id
+                  const isMe = msg.senderId === user?.userId
                   return (
                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${

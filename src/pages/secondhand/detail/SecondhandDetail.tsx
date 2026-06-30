@@ -4,6 +4,7 @@ import { PaymentModal } from '@/components/base/PaymentModal'
 import { Breadcrumb } from '@/components/base/Breadcrumb'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeImage, SafeAvatar } from '@/components/base/FallbackImage'
 import { PublishProductModal } from '../components/PublishProductModal'
 
 export function SecondhandDetail() {
@@ -54,8 +55,7 @@ export function SecondhandDetail() {
   }
 
   const isSold = item.status === 2
-  const savedAmount = item.originalPrice - item.price
-  const isOwner = user?.id === item.userId
+  const isOwner = user?.userId === item.sellerId
   const images = item.images?.length ? item.images : ['']
 
   const handleShare = async () => {
@@ -70,10 +70,10 @@ export function SecondhandDetail() {
   const handleLike = async () => {
     try {
       if (isLiked) {
-        await favoriteApi.cancel('item', item.id)
+        await favoriteApi.cancel('ITEM', item.id)
         showToast('已取消收藏', 'info')
       } else {
-        await favoriteApi.add('item', item.id)
+        await favoriteApi.add('ITEM', item.id)
         showToast('已收藏', 'success')
       }
       setIsLiked(!isLiked)
@@ -114,7 +114,7 @@ export function SecondhandDetail() {
           {/* 左侧图片区 */}
           <div>
             <div className="relative aspect-4/3 overflow-hidden rounded-xl bg-background-100">
-              <img src={images[activeImage]} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
+              <SafeImage src={images[activeImage]} alt={item.name} className="w-full h-full object-cover" />
               {/* 左上角校区/分类标签 */}
               <div className="absolute top-4 left-4 flex gap-2">
                 {item.campus && (
@@ -146,7 +146,7 @@ export function SecondhandDetail() {
                       activeImage === i ? 'ring-2 ring-primary-500 ring-offset-2' : 'opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt={`缩略图${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
+                    <SafeImage src={img} alt={`缩略图${i + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -160,32 +160,18 @@ export function SecondhandDetail() {
             {/* 价格 */}
             <div className="flex items-baseline gap-3 mb-4">
               <span className="text-3xl font-bold text-accent-600">¥{item.price}</span>
-              {item.originalPrice > item.price && (
-                <>
-                  <span className="text-lg text-foreground-400 line-through">¥{item.originalPrice}</span>
-                  {savedAmount > 0 && (
-                    <span className="text-sm px-2 py-1 bg-accent-100 text-accent-600 rounded-lg font-medium">省¥{savedAmount}</span>
-                  )}
-                </>
-              )}
             </div>
 
             {/* 卖家信息卡 */}
             <div className="flex items-center gap-4 p-4 bg-background-100 rounded-xl mb-4">
-              <img src={item.seller?.avatarUrl || ''} alt={item.seller?.nickname || ''} loading="lazy" className="w-12 h-12 rounded-full" />
+              <SafeAvatar src={''} alt="卖家" className="w-12 h-12 rounded-full" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-medium text-foreground-800">{item.seller?.nickname || item.seller?.username}</span>
-                  {item.seller?.studentVerified && <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-foreground-500 mt-0.5">
-                  <i className="ri-star-fill text-warning text-xs"></i>
-                  <span>{item.seller?.rating || 0} 分</span>
-                  {item.seller?.campus && <><span>·</span><span>{item.seller.campus}</span></>}
+                  <span className="text-base font-medium text-foreground-800">卖家 #{item.sellerId}</span>
                 </div>
               </div>
               <Link
-                to={`/chat/${item.seller?.id}`}
+                to={`/chat/${item.sellerId}`}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium"
               >
                 <i className="ri-chat-3-line"></i>私聊卖家
@@ -195,10 +181,7 @@ export function SecondhandDetail() {
             {/* 商品信息 */}
             <div className="flex items-center gap-4 text-sm text-foreground-500 mb-4">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-background-100 rounded-lg">
-                <i className="ri-eye-line text-xs"></i> {item.views} 浏览
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-background-100 rounded-lg">
-                <i className="ri-heart-line text-xs"></i> {item.likes} 收藏
+                <i className="ri-eye-line text-xs"></i> {item.viewCount} 浏览
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-background-100 rounded-lg">
                 <i className="ri-calendar-line text-xs"></i> {item.createdAt}
@@ -287,7 +270,7 @@ export function SecondhandDetail() {
         onClose={() => setShowPaymentModal(false)}
         amount={item.price}
         title={item.name}
-        recipient={item.seller?.nickname || ''}
+        recipient={`卖家 #${item.sellerId}`}
       />
 
       <PublishProductModal

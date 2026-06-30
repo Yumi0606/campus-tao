@@ -39,7 +39,7 @@ export function Secondhand() {
         sortBy: sortBy || undefined,
         sortOrder: sortBy === 'price-asc' ? 0 : 1,
       })
-      setItems(Array.isArray(result?.records) ? result.records.filter(Boolean) : [])
+      setItems(Array.isArray(result?.list) ? result.list.filter(Boolean) : [])
       setTotal(result?.total ?? 0)
       setPage(p)
     } catch (e: unknown) {
@@ -74,7 +74,7 @@ export function Secondhand() {
 
   // "我的"筛选：前端过滤（后端无 userId 筛选参数）
   const displayItems = showMyOnly
-    ? items.filter((item) => item.userId === user?.id)
+    ? items.filter((item) => item.sellerId === user?.userId)
     : items
 
   const categories = ['全部', ...ITEM_CATEGORIES]

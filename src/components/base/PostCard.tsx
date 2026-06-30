@@ -2,6 +2,7 @@ import type { PostInfo } from '@/api/types'
 import { likeApi } from '@/api'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeAvatar } from '@/components/base/FallbackImage'
 
 interface PostCardProps {
   post: PostInfo
@@ -11,7 +12,7 @@ export function PostCard({ post }: PostCardProps) {
   const { showToast } = useToast()
   const { isAuthenticated } = useAuth()
   const [isLiked, setIsLiked] = useState(false)
-  const [likeCount, setLikeCount] = useState(post.likes)
+  const [likeCount, setLikeCount] = useState(post.likeCount)
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -19,11 +20,11 @@ export function PostCard({ post }: PostCardProps) {
     if (!isAuthenticated) return
     try {
       if (isLiked) {
-        await likeApi.unlike('post', post.id)
+        await likeApi.unlike('POST', post.id)
         setLikeCount(likeCount - 1)
         showToast('已取消点赞', 'info')
       } else {
-        await likeApi.like('post', post.id)
+        await likeApi.like('POST', post.id)
         setLikeCount(likeCount + 1)
         showToast('已点赞', 'success')
       }
@@ -51,16 +52,14 @@ export function PostCard({ post }: PostCardProps) {
     >
       {/* 作者头像 + 标题 */}
       <div className="flex items-start gap-3 mb-3">
-        <img
-          src={post.author?.avatarUrl || ''}
-          alt={post.author?.nickname || ''}
-          loading="lazy"
+        <SafeAvatar
+          src={''}
+          alt="作者"
           className="w-10 h-10 rounded-full shrink-0"
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium text-foreground-800">{post.author?.nickname || post.author?.username}</span>
-            {post.author?.studentVerified && <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>}
+            <span className="text-sm font-medium text-foreground-800">作者 #{post.authorId}</span>
           </div>
           <h3 className="text-base font-medium text-foreground-900 line-clamp-1 group-hover:text-primary-700 transition-colors">
             {post.title}
@@ -75,7 +74,7 @@ export function PostCard({ post }: PostCardProps) {
 
       {/* 标签行 */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        {post.isPinned && (
+        {post.isTop === 1 && (
           <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-accent-100 text-accent-600 rounded-full font-medium">
             <i className="ri-pushpin-line"></i>置顶
           </span>

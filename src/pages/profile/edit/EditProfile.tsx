@@ -1,6 +1,7 @@
 import { userApi, fileApi } from '@/api'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeAvatar, SafeImage } from '@/components/base/FallbackImage'
 
 export function EditProfile() {
   const { user, logout, refreshUser } = useAuth()
@@ -109,7 +110,7 @@ export function EditProfile() {
           <div className="lg:sticky lg:top-24 lg:self-start">
             <div className="bg-background-100 rounded-xl p-6 text-center">
               <div className="relative inline-block mb-4">
-                <img src={user.avatarUrl || 'https://i.pravatar.cc/100?img=1'} alt={user.nickname} loading="lazy"
+                <SafeAvatar src={user.avatarUrl || 'https://i.pravatar.cc/100?img=1'} alt={user.nickname}
                   className="w-28 h-28 rounded-2xl" />
                 <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" id="avatar-input" />
                 <label htmlFor="avatar-input"
@@ -119,9 +120,9 @@ export function EditProfile() {
               </div>
               <h2 className="text-base font-semibold text-foreground-800">{form.nickname || user.username}</h2>
               <div className="flex items-center justify-center gap-3 mt-2 text-sm text-foreground-500">
-                <span className="inline-flex items-center gap-1"><i className="ri-star-fill text-warning text-xs"></i>{user.rating}</span>
+                <span className="inline-flex items-center gap-1"><i className="ri-star-fill text-warning text-xs"></i>-</span>
                 <span>·</span>
-                <span>{user.tradeCount} 笔交易</span>
+                <span>- 笔交易</span>
               </div>
             </div>
           </div>
@@ -162,7 +163,7 @@ export function EditProfile() {
             {/* 学生认证 */}
             <div className="bg-background-100 rounded-xl p-6 mb-6">
               <h3 className="text-base font-semibold text-foreground-800 mb-4">学生认证</h3>
-              {user.studentVerified ? (
+              {user.isVerified === 1 ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <i className="ri-shield-check-fill text-success text-lg"></i>
@@ -170,7 +171,7 @@ export function EditProfile() {
                   </div>
                   {user.studentCardUrl && (
                     <div className="w-40 h-28 rounded-xl overflow-hidden border border-secondary-200">
-                      <img src={user.studentCardUrl} alt="学生证" loading="lazy"
+                      <SafeImage src={user.studentCardUrl} alt="学生证"
                         className="w-full h-full object-cover" />
                     </div>
                   )}

@@ -27,7 +27,7 @@ export function Groupbuy() {
         status: selectedStatus ?? undefined,
         keywords,
       })
-      setGroupBuys(result?.records ?? [])
+      setGroupBuys(result?.list ?? [])
       setTotal(result?.total ?? 0)
       setPage(p)
     } catch (e: unknown) {
@@ -45,7 +45,7 @@ export function Groupbuy() {
 
   const totalPages = Math.ceil(total / pageSize)
   const displayItems = showMyOnly
-    ? groupBuys.filter((gb) => gb.userId === user?.id)
+    ? groupBuys.filter((gb) => gb.initiatorId === user?.userId)
     : groupBuys
 
   const statusFilters = [

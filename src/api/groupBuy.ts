@@ -4,22 +4,24 @@ import type { PageResult, GroupBuyInfo, GroupBuyRequest } from './types'
 export const groupBuyApi = {
   /**
    * 发起拼团团购
-   * @returns 新建的团购信息
+   * 后端返回 Result<Void>
    */
-  create(data: GroupBuyRequest): Promise<GroupBuyInfo> {
+  create(data: GroupBuyRequest): Promise<void> {
     return client.post('/api/group-buy', data)
   },
 
   /**
    * 编辑团购（仅团长可操作）
+   * 后端返回 Result<Void>
    * @param groupBuyId 团购 ID
    */
-  update(groupBuyId: number, data: GroupBuyRequest): Promise<GroupBuyInfo> {
+  update(groupBuyId: number, data: GroupBuyRequest): Promise<void> {
     return client.put(`/api/group-buy/${groupBuyId}`, data)
   },
 
   /**
    * 删除团购（仅团长可操作）
+   * 后端返回 Result<Void>
    * @param groupBuyId 团购 ID
    */
   remove(groupBuyId: number): Promise<void> {
@@ -28,6 +30,7 @@ export const groupBuyApi = {
 
   /**
    * 获取团购详情
+   * 后端返回 Result<GroupBuy>
    * @param groupBuyId 团购 ID
    */
   detail(groupBuyId: number): Promise<GroupBuyInfo> {
@@ -36,13 +39,9 @@ export const groupBuyApi = {
 
   /**
    * 分页查询团购列表
+   * 后端返回 Result<PageInfo<GroupBuy>>
    * @param page 页码（从 1 开始）
    * @param size 每页条数
-   * @param category 分类筛选
-   * @param status 状态筛选：0=进行中，1=已成团，2=已结束，3=已取消
-   * @param keywords 搜索关键词列表
-   * @param sortBy 排序字段
-   * @param sortOrder 排序方向（0=升序，1=降序）
    */
   page(
     page: number,
@@ -60,6 +59,7 @@ export const groupBuyApi = {
 
   /**
    * 参与团购
+   * 后端返回 Result<Void>
    * @param groupBuyId 团购 ID
    */
   join(groupBuyId: number): Promise<void> {
@@ -68,6 +68,7 @@ export const groupBuyApi = {
 
   /**
    * 取消参与团购
+   * 后端返回 Result<Void>
    * @param groupBuyId 团购 ID
    */
   cancelJoin(groupBuyId: number): Promise<void> {

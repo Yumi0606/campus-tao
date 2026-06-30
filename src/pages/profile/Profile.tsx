@@ -2,6 +2,7 @@ import { itemApi, favoriteApi } from '@/api'
 import type { ItemInfo, FavoriteInfo } from '@/api/types'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeImage, SafeAvatar } from '@/components/base/FallbackImage'
 
 export function Profile() {
   const { user } = useAuth()
@@ -20,23 +21,23 @@ export function Profile() {
     if (activeTab !== 'published' || !user) return
     itemApi.page(1, 50)
       .then((result) => {
-        const records = result?.records ?? []
-        setMyItems(records.filter((item) => item.userId === user.id))
+        const records = result?.list ?? []
+        setMyItems(records.filter((item) => item.sellerId === user.userId))
       })
       .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载失败', 'error'))
-  }, [activeTab, user?.id])
+  }, [activeTab, user?.userId])
 
   // 加载"我的收藏"
   useEffect(() => {
     if (activeTab !== 'favorites') return
     favoriteApi.myFavorites(1, 50)
-      .then((result) => setFavorites(result?.records ?? []))
+      .then((result) => setFavorites(result?.list ?? []))
       .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载失败', 'error'))
   }, [activeTab])
 
   const handleRemoveFavorite = async (targetId: number, targetType: string) => {
     try {
-      await favoriteApi.cancel(targetType as 'item' | 'group_buy' | 'post', targetId)
+      await favoriteApi.cancel(targetType as 'ITEM' | 'GROUP_BUY' | 'POST', targetId)
       setFavorites(favorites.filter((f) => f.targetId !== targetId))
       showToast('已取消收藏', 'info')
     } catch (e: unknown) {
@@ -62,7 +63,7 @@ export function Profile() {
         {/* 用户信息栏 */}
         <div className="bg-background-100 rounded-xl p-6 mb-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <img src={user.avatarUrl || 'https://i.pravatar.cc/100?img=1'} alt={user.nickname} loading="lazy"
+            <SafeAvatar src={user.avatarUrl || 'https://i.pravatar.cc/100?img=1'} alt={user.nickname}
               className="w-24 h-24 rounded-2xl" />
             <div className="flex-1 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
@@ -70,16 +71,16 @@ export function Profile() {
                 {user.campus && (
                   <span className="text-xs px-2.5 py-1 bg-primary-100 text-primary-600 rounded-lg font-medium">{user.campus}</span>
                 )}
-                {user.studentVerified && (
+                {user.isVerified === 1 && (
                   <i className="ri-verified-badge-fill text-primary-500"></i>
                 )}
               </div>
               <p className="text-sm text-foreground-500 mb-3">{user.contactInfo || '暂无联系方式'}</p>
               <div className="flex items-center justify-center md:justify-start gap-6 text-sm">
-                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">{user.tradeCount}</span><span className="text-foreground-400">完成交易</span></span>
-                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">{user.publishCount}</span><span className="text-foreground-400">发布商品</span></span>
-                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">{user.groupBuyCount}</span><span className="text-foreground-400">参与拼团</span></span>
-                <span className="text-center"><span className="block text-lg font-semibold text-accent-500">{user.rating}</span><span className="text-foreground-400">评分</span></span>
+                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">-</span><span className="text-foreground-400">完成交易</span></span>
+                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">-</span><span className="text-foreground-400">发布商品</span></span>
+                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">-</span><span className="text-foreground-400">参与拼团</span></span>
+                <span className="text-center"><span className="block text-lg font-semibold text-accent-500">-</span><span className="text-foreground-400">评分</span></span>
               </div>
             </div>
             <Link to="/profile/edit"
@@ -110,7 +111,7 @@ export function Profile() {
           <div className="flex flex-col gap-3">
             {myItems.map((item) => (
               <div key={item.id} className="flex items-center gap-4 p-4 bg-background-100 rounded-xl hover:bg-background-200 transition-colors">
-                <img src={item.images?.[0] || ''} alt={item.name} loading="lazy" className="w-20 h-20 rounded-lg object-cover" />
+                <SafeImage src={item.images?.[0]} alt={item.name} className="w-20 h-20 rounded-lg object-cover" />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium text-foreground-800 truncate">{item.name}</h3>
                   <div className="flex items-center gap-3 mt-1 text-xs text-foreground-400">
@@ -122,7 +123,7 @@ export function Profile() {
                       {item.status === 0 ? '在售' : item.status === 1 ? '已下架' : '已售出'}
                     </span>
                     <span className="text-accent-600 font-semibold">¥{item.price}</span>
-                    <span>{item.views} 浏览</span>
+                    <span>{item.viewCount} 浏览</span>
                     <span>{item.createdAt}</span>
                   </div>
                 </div>

@@ -2,6 +2,7 @@ import type { ItemInfo } from '@/api/types'
 import { favoriteApi } from '@/api'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeImage } from '@/components/base/FallbackImage'
 
 interface ProductCardProps {
   item: ItemInfo
@@ -16,7 +17,6 @@ export function ProductCard({ item, liked = false, onLikeToggle }: ProductCardPr
   if (!item) return null
 
   const isSold = item.status === 2
-  const savedAmount = item.originalPrice - item.price
 
   const handleLikeClick = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -24,10 +24,10 @@ export function ProductCard({ item, liked = false, onLikeToggle }: ProductCardPr
     if (!isAuthenticated) return
     try {
       if (liked) {
-        await favoriteApi.cancel('item', item.id)
+        await favoriteApi.cancel('ITEM', item.id)
         showToast('已取消收藏', 'info')
       } else {
-        await favoriteApi.add('item', item.id)
+        await favoriteApi.add('ITEM', item.id)
         showToast('已收藏', 'success')
       }
       onLikeToggle?.(item.id)
@@ -43,10 +43,9 @@ export function ProductCard({ item, liked = false, onLikeToggle }: ProductCardPr
     >
       {/* 图片区 - 4:3 比例，hover 放大效果 */}
       <div className="relative aspect-4/3 overflow-hidden">
-        <img
-          src={item.images?.[0] || ''}
+        <SafeImage
+          src={item.images?.[0]}
           alt={item.name}
-          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
         />
 
@@ -88,33 +87,11 @@ export function ProductCard({ item, liked = false, onLikeToggle }: ProductCardPr
         {/* 价格 */}
         <div className="flex items-baseline gap-2 mb-2">
           <span className="text-lg font-semibold text-accent-600">¥{item.price}</span>
-          {item.originalPrice > item.price && (
-            <>
-              <span className="text-xs text-foreground-400 line-through">¥{item.originalPrice}</span>
-              {savedAmount > 0 && (
-                <span className="text-xs px-1.5 py-0.5 bg-accent-100 text-accent-600 rounded">
-                  省¥{savedAmount}
-                </span>
-              )}
-            </>
-          )}
         </div>
 
-        {/* 卖家头像+名称+评分 */}
+        {/* 卖家信息 */}
         <div className="flex items-center gap-2 mb-2">
-          <img
-            src={item.seller?.avatarUrl || ''}
-            alt={item.seller?.nickname || ''}
-            loading="lazy"
-            className="w-5 h-5 rounded-full"
-          />
-          <span className="text-xs text-foreground-600">{item.seller?.nickname || item.seller?.username}</span>
-          {item.seller?.rating > 0 && (
-            <span className="text-xs text-foreground-400 flex items-center gap-0.5">
-              <i className="ri-star-fill text-warning text-xs"></i>
-              {item.seller.rating}
-            </span>
-          )}
+          <span className="text-xs text-foreground-600">卖家 #{item.sellerId}</span>
         </div>
 
         {/* 浏览数 + 收藏数 + 时间 */}
@@ -122,11 +99,7 @@ export function ProductCard({ item, liked = false, onLikeToggle }: ProductCardPr
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <i className="ri-eye-line text-xs"></i>
-              {item.views}
-            </span>
-            <span className="flex items-center gap-1">
-              <i className="ri-heart-line text-xs"></i>
-              {item.likes}
+              {item.viewCount}
             </span>
           </div>
           <span>{item.createdAt}</span>

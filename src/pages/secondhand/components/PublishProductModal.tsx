@@ -21,7 +21,6 @@ export function PublishProductModal({ isOpen, onClose, onSuccess, editItem }: Pu
   const [category, setCategory] = useState('')
   const [campus, setCampus] = useState('')
   const [price, setPrice] = useState('')
-  const [originalPrice, setOriginalPrice] = useState('')
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -32,7 +31,7 @@ export function PublishProductModal({ isOpen, onClose, onSuccess, editItem }: Pu
 
   const resetForm = () => {
     setImageFile(null); setImagePreview(null); setTitle(''); setCategory(''); setCampus('')
-    setPrice(''); setOriginalPrice(''); setDescription('')
+    setPrice(''); setDescription('')
     setSubmitting(false); setSuccess(false)
   }
 
@@ -44,7 +43,6 @@ export function PublishProductModal({ isOpen, onClose, onSuccess, editItem }: Pu
       setCategory(editItem.category)
       setCampus(editItem.campus)
       setPrice(String(editItem.price))
-      setOriginalPrice(String(editItem.originalPrice))
       setDescription(editItem.description)
       setImagePreview(editItem.images?.[0] || null)
     } else {
@@ -177,14 +175,6 @@ export function PublishProductModal({ isOpen, onClose, onSuccess, editItem }: Pu
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-400 text-sm">¥</span>
                   <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
-                    className={inputClass + " pl-8"} placeholder="0" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground-700 mb-2">原价（选填）</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-400 text-sm">¥</span>
-                  <input type="number" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)}
                     className={inputClass + " pl-8"} placeholder="0" />
                 </div>
               </div>

@@ -4,16 +4,18 @@ import type { PageResult, FavoriteInfo, FavoriteRequest } from './types'
 export const favoriteApi = {
   /**
    * 添加收藏
-   * @param targetType 收藏目标类型："item"=物品，"group_buy"=团购，"post"=帖子
+   * 后端返回 Result<Long>，data 为收藏记录 ID
+   * @param targetType 收藏目标类型：大写枚举 "ITEM"/"GROUP_BUY"/"POST"
    * @param targetId 收藏目标 ID
    */
-  add(targetType: FavoriteRequest['targetType'], targetId: number): Promise<void> {
+  add(targetType: FavoriteRequest['targetType'], targetId: number): Promise<number> {
     return client.post('/api/favorite', { targetType, targetId })
   },
 
   /**
    * 取消收藏
-   * @param targetType 收藏目标类型："item"=物品，"group_buy"=团购，"post"=帖子
+   * 后端返回 Result<Void>
+   * @param targetType 收藏目标类型：大写枚举 "ITEM"/"GROUP_BUY"/"POST"
    * @param targetId 收藏目标 ID
    */
   cancel(targetType: FavoriteRequest['targetType'], targetId: number): Promise<void> {
@@ -22,6 +24,7 @@ export const favoriteApi = {
 
   /**
    * 获取我的收藏列表
+   * 后端返回 Result<PageInfo<Map<String, Object>>>，每条记录包含收藏信息 + target 目标详情
    * @param page 页码（从 1 开始），默认 1
    * @param size 每页条数，默认 10
    */

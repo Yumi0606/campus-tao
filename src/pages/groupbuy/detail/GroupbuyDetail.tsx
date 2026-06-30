@@ -4,6 +4,7 @@ import { PaymentModal } from '@/components/base/PaymentModal'
 import { Breadcrumb } from '@/components/base/Breadcrumb'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeImage, SafeAvatar } from '@/components/base/FallbackImage'
 import { PublishGroupBuyModal } from '../components/PublishGroupBuyModal'
 
 export function GroupbuyDetail() {
@@ -20,17 +21,13 @@ export function GroupbuyDetail() {
     if (!id) return
     setLoading(true)
     groupBuyApi.detail(Number(id))
-      .then((data) => {
-        setGroupBuy(data)
-        // 判断当前用户是否已参团
-        setIsJoined(data.participants?.some((p) => p.userId === user?.id) ?? false)
-      })
+      .then((data) => setGroupBuy(data))
       .catch((e: unknown) => {
         setGroupBuy(null)
         showToast(e instanceof Error ? e.message : '加载失败', 'error')
       })
       .finally(() => setLoading(false))
-  }, [id, user?.id, showToast])
+  }, [id, showToast])
 
   if (loading) {
     return (
@@ -59,7 +56,7 @@ export function GroupbuyDetail() {
   const isCompleted = groupBuy.status === 1
   const isEnded = groupBuy.status === 2 || groupBuy.status === 3
   const isOngoing = groupBuy.status === 0
-  const isOwner = user?.id === groupBuy.userId
+  const isOwner = user?.userId === groupBuy.initiatorId
   const progress = (groupBuy.currentPeople / groupBuy.minPeople) * 100
   const savedAmount = groupBuy.originalPrice - groupBuy.discountPrice
 
@@ -84,7 +81,7 @@ export function GroupbuyDetail() {
       // 重新拉取详情
       const data = await groupBuyApi.detail(groupBuy.id)
       setGroupBuy(data)
-      setIsJoined(data.participants?.some((p) => p.userId === user?.id) ?? false)
+      setIsJoined(!isJoined)
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : '操作失败', 'error')
     }
@@ -111,7 +108,7 @@ export function GroupbuyDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 左侧图片 */}
           <div className="relative aspect-4/3 overflow-hidden rounded-xl bg-background-100">
-            <img src={groupBuy.images?.[0] || ''} alt={groupBuy.name} loading="lazy" className="w-full h-full object-cover" />
+            <SafeImage src={groupBuy.images?.[0]} alt={groupBuy.name} className="w-full h-full object-cover" />
           </div>
 
           {/* 右侧信息区 */}
@@ -152,20 +149,14 @@ export function GroupbuyDetail() {
 
             {/* 团长信息 */}
             <div className="flex items-center gap-4 p-4 bg-background-100 rounded-xl mb-4">
-              <img src={groupBuy.initiator?.avatarUrl || ''} alt={groupBuy.initiator?.nickname || ''} loading="lazy" className="w-12 h-12 rounded-full" />
+              <SafeAvatar src={''} alt="团长" className="w-12 h-12 rounded-full" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-medium text-foreground-800">{groupBuy.initiator?.nickname || groupBuy.initiator?.username}</span>
-                  {groupBuy.initiator?.studentVerified && <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>}
+                  <span className="text-base font-medium text-foreground-800">团长 #{groupBuy.initiatorId}</span>
                   <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-600 rounded-lg font-medium">团长</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-foreground-500 mt-0.5">
-                  <i className="ri-star-fill text-warning text-xs"></i>
-                  <span>{groupBuy.initiator?.rating || 0} 分</span>
-                  {groupBuy.initiator?.campus && <><span>·</span><span>{groupBuy.initiator.campus}</span></>}
-                </div>
               </div>
-              <Link to={`/chat/${groupBuy.initiator?.id}`}
+              <Link to={`/chat/${groupBuy.initiatorId}`}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:scale-95 transition-all duration-200 whitespace-nowrap font-medium">
                 <i className="ri-chat-3-line"></i>私聊团长
               </Link>
@@ -244,7 +235,7 @@ export function GroupbuyDetail() {
       </div>
 
       <PaymentModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)}
-        amount={groupBuy.discountPrice} title={groupBuy.name} recipient={groupBuy.initiator?.nickname || ''} />
+        amount={groupBuy.discountPrice} title={groupBuy.name} recipient={`团长 #${groupBuy.initiatorId}`} />
 
       <PublishGroupBuyModal isOpen={showEditModal} onClose={() => setShowEditModal(false)}
         editGroupBuy={groupBuy}

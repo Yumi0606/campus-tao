@@ -30,7 +30,7 @@ export function Forum() {
         keywords,
         sortMode,
       })
-      setPosts(result?.records ?? [])
+      setPosts(result?.list ?? [])
       setTotal(result?.total ?? 0)
       setPage(p)
     } catch (e: unknown) {
@@ -48,7 +48,7 @@ export function Forum() {
 
   const totalPages = Math.ceil(total / pageSize)
   const displayPosts = showMyOnly
-    ? posts.filter((p) => p.userId === user?.id)
+    ? posts.filter((p) => p.authorId === user?.userId)
     : posts
 
   const boards = ['全部', ...FORUM_BOARDS]

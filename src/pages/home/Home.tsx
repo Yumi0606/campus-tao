@@ -16,20 +16,20 @@ export function Home() {
     Promise.all([
       itemApi.page(1, 4).catch((e: unknown) => {
         showToast(e instanceof Error ? e.message : '加载失败', 'error')
-        return { records: [], total: 0 }
+        return { list: [], total: 0 }
       }),
       groupBuyApi.page(1, 3).catch((e: unknown) => {
         showToast(e instanceof Error ? e.message : '加载失败', 'error')
-        return { records: [], total: 0 }
+        return { list: [], total: 0 }
       }),
       postApi.page(1, 3, { sortMode: 'hot' }).catch((e: unknown) => {
         showToast(e instanceof Error ? e.message : '加载失败', 'error')
-        return { records: [], total: 0 }
+        return { list: [], total: 0 }
       }),
     ]).then(([itemsResult, gbResult, postsResult]) => {
-      setHotItems(Array.isArray(itemsResult?.records) ? itemsResult.records.filter(Boolean) : [])
-      setHotGroupBuys(Array.isArray(gbResult?.records) ? gbResult.records.filter(Boolean) : [])
-      setHotPosts(Array.isArray(postsResult?.records) ? postsResult.records.filter(Boolean) : [])
+      setHotItems(Array.isArray(itemsResult?.list) ? itemsResult.list.filter(Boolean) : [])
+      setHotGroupBuys(Array.isArray(gbResult?.list) ? gbResult.list.filter(Boolean) : [])
+      setHotPosts(Array.isArray(postsResult?.list) ? postsResult.list.filter(Boolean) : [])
     })
   }, [showToast])
 

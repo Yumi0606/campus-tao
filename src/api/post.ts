@@ -4,22 +4,24 @@ import type { PageResult, PostInfo, PostRequest } from './types'
 export const postApi = {
   /**
    * 发布帖子
-   * @returns 新建的帖子信息
+   * 后端返回 Result<Long>，data 为新帖子 ID
    */
-  publish(data: PostRequest): Promise<PostInfo> {
+  publish(data: PostRequest): Promise<number> {
     return client.post('/api/post', data)
   },
 
   /**
    * 编辑帖子
+   * 后端返回 Result<Void>
    * @param postId 帖子 ID
    */
-  update(postId: number, data: PostRequest): Promise<PostInfo> {
+  update(postId: number, data: PostRequest): Promise<void> {
     return client.put(`/api/post/${postId}`, data)
   },
 
   /**
    * 删除帖子
+   * 后端返回 Result<Void>
    * @param postId 帖子 ID
    */
   remove(postId: number): Promise<void> {
@@ -28,6 +30,7 @@ export const postApi = {
 
   /**
    * 获取帖子详情
+   * 后端返回 Result<Post>
    * @param postId 帖子 ID
    */
   detail(postId: number): Promise<PostInfo> {
@@ -36,13 +39,9 @@ export const postApi = {
 
   /**
    * 分页查询帖子列表
+   * 后端返回 Result<PageInfo<Post>>
    * @param page 页码（从 1 开始）
    * @param size 每页条数
-   * @param board 板块筛选，如 "求助"、"二手"、"生活"
-   * @param keywords 搜索关键词列表
-   * @param sortBy 排序字段
-   * @param sortOrder 排序方向（0=升序，1=降序）
-   * @param sortMode 排序模式，如 "hot"=热门、"latest"=最新
    */
   page(
     page: number,

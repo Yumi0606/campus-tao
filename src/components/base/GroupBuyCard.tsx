@@ -1,4 +1,5 @@
 import type { GroupBuyInfo } from '@/api/types'
+import { SafeImage } from '@/components/base/FallbackImage'
 
 interface GroupBuyCardProps {
   groupBuy: GroupBuyInfo
@@ -25,10 +26,9 @@ export function GroupBuyCard({ groupBuy }: GroupBuyCardProps) {
       {/* 图片 */}
       <div className="w-full sm:w-48 shrink-0">
         <div className="relative aspect-4/3 overflow-hidden rounded-lg">
-          <img
-            src={groupBuy.images?.[0] || ''}
+          <SafeImage
+            src={groupBuy.images?.[0]}
             alt={groupBuy.name}
-            loading="lazy"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <span className={`absolute top-2 left-2 px-2.5 py-1 text-xs text-white rounded-lg font-medium ${currentStatus.color}`}>
@@ -72,13 +72,7 @@ export function GroupBuyCard({ groupBuy }: GroupBuyCardProps) {
 
         <div className="mt-auto flex items-center justify-between text-xs text-foreground-400">
           <div className="flex items-center gap-2">
-            <img
-              src={groupBuy.initiator?.avatarUrl || ''}
-              alt={groupBuy.initiator?.nickname || ''}
-              loading="lazy"
-              className="w-5 h-5 rounded-full"
-            />
-            <span>{groupBuy.initiator?.nickname || groupBuy.initiator?.username}</span>
+            <span>团长 #{groupBuy.initiatorId}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">

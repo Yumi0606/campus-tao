@@ -4,19 +4,23 @@ import type { PageResult, MessageInfo, ConversationInfo, MessageRequest } from '
 export const messageApi = {
   /**
    * 发送私信
-   * @returns 新建的消息信息
+   * 后端返回 Result<Message>
    */
   send(data: MessageRequest): Promise<MessageInfo> {
     return client.post('/api/message', data)
   },
 
-  /** 获取当前用户的所有会话列表 */
+  /**
+   * 获取当前用户的所有会话列表
+   * 后端返回 Result<List<ConversationResponse>>
+   */
   conversations(): Promise<ConversationInfo[]> {
     return client.get('/api/message/conversations')
   },
 
   /**
    * 获取与某用户的聊天记录
+   * 后端返回 Result<PageInfo<Message>>
    * @param contactId 对方用户 ID
    * @param page 页码（从 1 开始），默认 1
    * @param size 每页条数，默认 20
@@ -27,6 +31,7 @@ export const messageApi = {
 
   /**
    * 标记消息为已读
+   * 后端返回 Result<Void>
    * @param messageId 消息 ID
    */
   markRead(messageId: number): Promise<void> {

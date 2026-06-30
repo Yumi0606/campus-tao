@@ -3,6 +3,7 @@ import type { PostInfo, CommentInfo } from '@/api/types'
 import { Breadcrumb } from '@/components/base/Breadcrumb'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
+import { SafeAvatar } from '@/components/base/FallbackImage'
 import { PublishPostModal } from '../components/PublishPostModal'
 
 export function ForumDetail() {
@@ -32,8 +33,8 @@ export function ForumDetail() {
         ])
         if (cancelled) return
         setPost(postData)
-        setLikeCount(postData.likes)
-        setComments(commentData?.records ?? [])
+        setLikeCount(postData.likeCount)
+        setComments(commentData?.list ?? [])
         setLoading(false)
       } catch (e: unknown) {
         if (cancelled) return
@@ -69,16 +70,16 @@ export function ForumDetail() {
     )
   }
 
-  const isOwner = user?.id === post.userId
+  const isOwner = user?.userId === post.authorId
 
   const handleLike = async () => {
     try {
       if (isLiked) {
-        await likeApi.unlike('post', post.id)
+        await likeApi.unlike('POST', post.id)
         setLikeCount(likeCount - 1)
         showToast('已取消点赞', 'info')
       } else {
-        await likeApi.like('post', post.id)
+        await likeApi.like('POST', post.id)
         setLikeCount(likeCount + 1)
         showToast('已点赞', 'success')
       }
@@ -100,9 +101,9 @@ export function ForumDetail() {
   const handleCommentLike = async (commentId: number) => {
     try {
       if (commentLikes.has(commentId)) {
-        await likeApi.unlike('comment', commentId)
+        await likeApi.unlike('COMMENT', commentId)
       } else {
-        await likeApi.like('comment', commentId)
+        await likeApi.like('COMMENT', commentId)
       }
       setCommentLikes((prev) => {
         const next = new Set(prev)
@@ -118,10 +119,22 @@ export function ForumDetail() {
   const handleComment = async () => {
     if (!commentText.trim()) return
     try {
-      const newComment = await commentApi.publish({
+      const newCommentId = await commentApi.publish({
         postId: post.id,
         content: replyTo ? `@${replyTo} ${commentText}` : commentText,
       })
+      // 手动构造新评论追加到列表（后端只返回 ID）
+      const newComment: CommentInfo = {
+        id: newCommentId,
+        postId: post.id,
+        authorId: user!.userId,
+        parentId: null,
+        content: replyTo ? `@${replyTo} ${commentText}` : commentText,
+        likeCount: 0,
+        status: 1,
+        createdAt: new Date().toISOString(),
+        replies: [],
+      }
       setComments([...comments, newComment])
       setCommentText('')
       setReplyTo(null)
@@ -161,7 +174,7 @@ export function ForumDetail() {
 
         {/* 标签行 */}
         <div className="flex items-center gap-2 mb-4">
-          {post.isPinned && (
+          {post.isTop === 1 && (
             <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 bg-accent-100 text-accent-600 rounded-lg font-medium">
               <i className="ri-pushpin-line"></i>置顶
             </span>
@@ -177,18 +190,17 @@ export function ForumDetail() {
         {/* 作者信息行 */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <img src={post.author?.avatarUrl || ''} alt={post.author?.nickname || ''} loading="lazy" className="w-10 h-10 rounded-full" />
+            <SafeAvatar src={''} alt="作者" className="w-10 h-10 rounded-full" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground-800">{post.author?.nickname || post.author?.username}</span>
-                {post.author?.studentVerified && <i className="ri-verified-badge-fill text-primary-500 text-sm"></i>}
+                <span className="text-sm font-medium text-foreground-800">作者 #{post.authorId}</span>
               </div>
               <span className="text-xs text-foreground-400">{post.createdAt}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 text-xs text-foreground-400 px-2.5 py-1.5 bg-background-100 rounded-lg">
-              <i className="ri-eye-line"></i>{post.views}
+              <i className="ri-eye-line"></i>{post.viewCount}
             </span>
             <button
               className={`inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-all duration-200 font-medium cursor-pointer ${
@@ -230,13 +242,13 @@ export function ForumDetail() {
 
           <div className="flex flex-col gap-3 mb-6">
             {comments.map((comment) => {
-              const isCommentOwner = user?.id === comment.userId
+              const isCommentOwner = user?.userId === comment.authorId
               return (
                 <div key={comment.id} className="flex gap-3 p-3 bg-background-50 rounded-xl hover:bg-background-100 transition-colors">
-                  <img src={comment.author?.avatarUrl || ''} alt={comment.author?.nickname || ''} loading="lazy" className="w-8 h-8 rounded-full shrink-0" />
+                  <SafeAvatar src={''} alt="评论者" className="w-8 h-8 rounded-full shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-foreground-800">{comment.author?.nickname || comment.author?.username}</span>
+                      <span className="text-sm font-medium text-foreground-800">用户 #{comment.authorId}</span>
                       <span className="text-xs text-foreground-400">{comment.createdAt}</span>
                     </div>
                     <p className="text-sm text-foreground-600">{comment.content}</p>
@@ -247,11 +259,11 @@ export function ForumDetail() {
                         }`}
                         onClick={() => handleCommentLike(comment.id)}>
                         <i className={`${commentLikes.has(comment.id) ? 'ri-heart-fill' : 'ri-heart-line'}`}></i>
-                        {comment.likes + (commentLikes.has(comment.id) ? 1 : 0)}
+                        {comment.likeCount + (commentLikes.has(comment.id) ? 1 : 0)}
                       </button>
                       <button
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-primary-50 hover:text-primary-500 transition-all duration-200 cursor-pointer"
-                        onClick={() => setReplyTo(comment.author?.nickname || '')}>
+                        onClick={() => setReplyTo(`用户 #${comment.authorId}`)}>
                         <i className="ri-reply-line"></i>回复
                       </button>
                       {isCommentOwner && (
@@ -270,7 +282,7 @@ export function ForumDetail() {
 
           {/* 评论输入区 */}
           <div className="flex gap-3">
-            <img src={user?.avatarUrl || ''} alt="我的头像" loading="lazy" className="w-8 h-8 rounded-full shrink-0" />
+            <SafeAvatar src={user?.avatarUrl} alt="我的头像" className="w-8 h-8 rounded-full shrink-0" />
             <div className="flex-1">
               {replyTo && (
                 <div className="inline-flex items-center gap-1 text-xs text-primary-500 bg-primary-50 px-2 py-1 rounded-lg mb-2 font-medium">
