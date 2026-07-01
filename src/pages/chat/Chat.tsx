@@ -5,6 +5,27 @@ import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
 import { SafeAvatar } from '@/components/base/FallbackImage'
 
+/** 格式化消息时间：今天显示 HH:mm，昨天显示"昨天 HH:mm"，今年显示 M/D HH:mm，跨年显示 YYYY/M/D HH:mm */
+function formatMessageTime(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+
+  const isToday = date.toDateString() === now.toDateString()
+  if (isToday) return time
+
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const isYesterday = date.toDateString() === yesterday.toDateString()
+  if (isYesterday) return `昨天 ${time}`
+
+  const isThisYear = date.getFullYear() === now.getFullYear()
+  if (isThisYear) return `${date.getMonth() + 1}/${date.getDate()} ${time}`
+
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${time}`
+}
+
 export function Chat() {
   const { contactId } = useParams()
   const { user } = useAuth()
@@ -21,6 +42,15 @@ export function Chat() {
   const [loadingConvos, setLoadingConvos] = useState(true)
   // 新会话：URL 指定了联系人但该联系人不在已有会话列表中
   const [newContact, setNewContact] = useState<ConversationInfo | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // 消息变化时自动滚动消息容器到底部（不影响页面滚动）
+  useEffect(() => {
+    const container = messagesEndRef.current?.parentElement
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
+  }, [messages])
 
   // 加载会话列表
   useEffect(() => {
@@ -79,7 +109,10 @@ export function Chat() {
     }
     messageApi.history(selectedContactId, 1, 100)
       .then((data) => {
-        setMessages(data?.list ?? [])
+        // 后端返回消息按 created_at DESC，前端需反转为升序（旧→新）以保证正确显示顺序
+        const list = data?.list ?? []
+        list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        setMessages(list)
         setMobileShowChat(true)
       })
       .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载消息失败', 'error'))
@@ -217,20 +250,34 @@ export function Chat() {
 
               {/* 消息区 */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.map((msg) => {
+                {messages.map((msg, index) => {
                   const isMe = msg.senderId === user?.userId
+                  // 与上一条消息间隔超过 5 分钟时显示时间标签
+                  const showTime = index === 0 || (() => {
+                    const prev = messages[index - 1]
+                    const diff = new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime()
+                    return diff > 5 * 60 * 1000
+                  })()
                   return (
-                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${
-                        isMe
-                          ? 'bg-primary-500 text-white rounded-br-md'
-                          : 'bg-background-100 text-foreground-700 rounded-bl-md'
-                      }`}>
-                        {msg.content}
+                    <div key={msg.id}>
+                      {showTime && (
+                        <div className="text-center text-xs text-foreground-400 my-2">
+                          {formatMessageTime(msg.createdAt)}
+                        </div>
+                      )}
+                      <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${
+                          isMe
+                            ? 'bg-primary-500 text-white rounded-br-md'
+                            : 'bg-background-100 text-foreground-700 rounded-bl-md'
+                        }`}>
+                          {msg.content}
+                        </div>
                       </div>
                     </div>
                   )
                 })}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* 底部输入区 */}
