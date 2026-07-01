@@ -2,11 +2,9 @@ import { groupBuyApi } from '@/api'
 import type { GroupBuyInfo } from '@/api/types'
 import { GroupBuyCard } from '@/components/base/GroupBuyCard'
 import { PublishGroupBuyModal } from './components/PublishGroupBuyModal'
-import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
 
 export function Groupbuy() {
-  const { user } = useAuth()
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null)
@@ -26,6 +24,7 @@ export function Groupbuy() {
       const result = await groupBuyApi.page(p, pageSize, {
         status: selectedStatus ?? undefined,
         keywords,
+        mineOnly: showMyOnly || undefined,
       })
       setGroupBuys(result?.list ?? [])
       setTotal(result?.total ?? 0)
@@ -37,16 +36,14 @@ export function Groupbuy() {
     }
   }
 
-  useEffect(() => { fetchGroupBuys(1) }, [selectedStatus])
+  useEffect(() => { fetchGroupBuys(1) }, [selectedStatus, showMyOnly])
   useEffect(() => {
     const timer = setTimeout(() => fetchGroupBuys(1), 400)
     return () => clearTimeout(timer)
   }, [searchQuery])
 
   const totalPages = Math.ceil(total / pageSize)
-  const displayItems = showMyOnly
-    ? groupBuys.filter((gb) => gb.initiatorId === user?.userId)
-    : groupBuys
+  // "我的"筛选已由后端 mineOnly 参数处理，无需前端过滤
 
   const statusFilters = [
     { label: '全部', value: null },
@@ -110,10 +107,10 @@ export function Groupbuy() {
           <div className="flex justify-center py-20">
             <i className="ri-loader-4-line text-3xl text-primary-500 animate-spin"></i>
           </div>
-        ) : displayItems.length > 0 ? (
+        ) : groupBuys.length > 0 ? (
           <>
             <div className="flex flex-col gap-4 mb-12">
-              {displayItems.map((gb) => (
+              {groupBuys.map((gb) => (
                 <GroupBuyCard key={gb.id} groupBuy={gb} />
               ))}
             </div>

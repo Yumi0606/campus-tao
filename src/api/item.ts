@@ -54,6 +54,7 @@ export const itemApi = {
       keywords?: string[]
       sortBy?: string
       sortOrder?: number
+      mineOnly?: boolean
     },
   ): Promise<PageResult<ItemInfo>> {
     return client.get('/api/item/page', { params: { page, size, ...options } })

@@ -2,12 +2,10 @@ import { postApi } from '@/api'
 import type { PostInfo } from '@/api/types'
 import { PostCard } from '@/components/base/PostCard'
 import { PublishPostModal } from './components/PublishPostModal'
-import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
 import { FORUM_BOARDS } from '@/constants'
 
 export function Forum() {
-  const { user } = useAuth()
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedBoard, setSelectedBoard] = useState('')
@@ -29,6 +27,7 @@ export function Forum() {
         board: selectedBoard || undefined,
         keywords,
         sortMode,
+        mineOnly: showMyOnly || undefined,
       })
       setPosts(result?.list ?? [])
       setTotal(result?.total ?? 0)
@@ -40,16 +39,14 @@ export function Forum() {
     }
   }
 
-  useEffect(() => { fetchPosts(1) }, [selectedBoard, sortMode])
+  useEffect(() => { fetchPosts(1) }, [selectedBoard, sortMode, showMyOnly])
   useEffect(() => {
     const timer = setTimeout(() => fetchPosts(1), 400)
     return () => clearTimeout(timer)
   }, [searchQuery])
 
   const totalPages = Math.ceil(total / pageSize)
-  const displayPosts = showMyOnly
-    ? posts.filter((p) => p.authorId === user?.userId)
-    : posts
+  // "我的"筛选已由后端 mineOnly 参数处理，无需前端过滤
 
   const boards = ['全部', ...FORUM_BOARDS]
 
@@ -124,10 +121,10 @@ export function Forum() {
           <div className="flex justify-center py-20">
             <i className="ri-loader-4-line text-3xl text-primary-500 animate-spin"></i>
           </div>
-        ) : displayPosts.length > 0 ? (
+        ) : posts.length > 0 ? (
           <>
             <div className="flex flex-col gap-4">
-              {displayPosts.map((post) => (
+              {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </div>

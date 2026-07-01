@@ -52,6 +52,7 @@ export const postApi = {
       sortBy?: string
       sortOrder?: number
       sortMode?: string
+      mineOnly?: boolean
     },
   ): Promise<PageResult<PostInfo>> {
     return client.get('/api/post/page', { params: { page, size, ...options } })

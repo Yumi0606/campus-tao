@@ -2,12 +2,10 @@ import { itemApi } from '@/api'
 import type { ItemInfo } from '@/api/types'
 import { ProductCard } from '@/components/base/ProductCard'
 import { PublishProductModal } from './components/PublishProductModal'
-import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
 import { ITEM_CATEGORIES, CAMPUSES } from '@/constants'
 
 export function Secondhand() {
-  const { user } = useAuth()
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -36,8 +34,9 @@ export function Secondhand() {
         category: selectedCategory || undefined,
         campus: selectedCampus || undefined,
         keywords,
-        sortBy: sortBy || undefined,
-        sortOrder: sortBy === 'price-asc' ? 0 : 1,
+        sortBy: sortBy === 'views' ? 'view_count' : sortBy ? 'price' : undefined,
+        sortOrder: sortBy === 'price-asc' ? 0 : sortBy ? 1 : undefined,
+        mineOnly: showMyOnly || undefined,
       })
       setItems(Array.isArray(result?.list) ? result.list.filter(Boolean) : [])
       setTotal(result?.total ?? 0)
@@ -52,7 +51,7 @@ export function Secondhand() {
     }
   }
 
-  useEffect(() => { fetchItems(1) }, [selectedCategory, selectedCampus, sortBy])
+  useEffect(() => { fetchItems(1) }, [selectedCategory, selectedCampus, sortBy, showMyOnly])
 
   // 搜索防抖
   useEffect(() => {
@@ -72,10 +71,7 @@ export function Secondhand() {
     })
   }
 
-  // "我的"筛选：前端过滤（后端无 userId 筛选参数）
-  const displayItems = showMyOnly
-    ? items.filter((item) => item.sellerId === user?.userId)
-    : items
+  // "我的"筛选已由后端 mineOnly 参数处理，无需前端过滤
 
   const categories = ['全部', ...ITEM_CATEGORIES]
   const campuses = ['全部校区', ...CAMPUSES]
@@ -185,10 +181,10 @@ export function Secondhand() {
           <div className="flex justify-center py-20">
             <i className="ri-loader-4-line text-3xl text-primary-500 animate-spin"></i>
           </div>
-        ) : displayItems.length > 0 ? (
+        ) : items.length > 0 ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {displayItems.map((item) => (
+              {items.map((item) => (
                 <ProductCard
                   key={item.id}
                   item={item}

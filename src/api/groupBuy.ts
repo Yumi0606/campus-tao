@@ -52,6 +52,7 @@ export const groupBuyApi = {
       keywords?: string[]
       sortBy?: string
       sortOrder?: number
+      mineOnly?: boolean
     },
   ): Promise<PageResult<GroupBuyInfo>> {
     return client.get('/api/group-buy/page', { params: { page, size, ...options } })
