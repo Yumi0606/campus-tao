@@ -77,9 +77,9 @@ export function Profile() {
               </div>
               <p className="text-sm text-foreground-500 mb-3">{user.contactInfo || '暂无联系方式'}</p>
               <div className="flex items-center justify-center md:justify-start gap-6 text-sm">
-                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">-</span><span className="text-foreground-400">完成交易</span></span>
-                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">-</span><span className="text-foreground-400">发布商品</span></span>
-                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">-</span><span className="text-foreground-400">参与拼团</span></span>
+                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">{user.completedTransactions ?? 0}</span><span className="text-foreground-400">完成交易</span></span>
+                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">{user.publishedItems ?? 0}</span><span className="text-foreground-400">发布商品</span></span>
+                <span className="text-center"><span className="block text-lg font-semibold text-foreground-800">{user.joinedGroupBuys ?? 0}</span><span className="text-foreground-400">参与拼团</span></span>
                 <span className="text-center"><span className="block text-lg font-semibold text-accent-500">-</span><span className="text-foreground-400">评分</span></span>
               </div>
             </div>

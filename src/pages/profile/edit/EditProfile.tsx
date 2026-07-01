@@ -123,7 +123,7 @@ export function EditProfile() {
               <div className="flex items-center justify-center gap-3 mt-2 text-sm text-foreground-500">
                 <span className="inline-flex items-center gap-1"><i className="ri-star-fill text-warning text-xs"></i>-</span>
                 <span>·</span>
-                <span>- 笔交易</span>
+                <span>{user.completedTransactions ?? 0} 笔交易</span>
               </div>
             </div>
           </div>

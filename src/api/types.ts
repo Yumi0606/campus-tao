@@ -89,7 +89,7 @@ export interface LoginResult {
   nickname: string
 }
 
-/** 用户信息（与后端 User 实体对齐） */
+/** 用户信息（与后端 UserInfoResponse 对齐） */
 export interface UserInfo {
   /** 用户 ID（后端字段名 userId） */
   userId: number
@@ -99,8 +99,6 @@ export interface UserInfo {
   phone: string
   /** 邮箱 */
   email: string
-  /** 密码哈希（获取信息时后端会置为 null） */
-  passwordHash: string | null
   /** 昵称 */
   nickname: string
   /** 头像 URL */
@@ -119,6 +117,12 @@ export interface UserInfo {
   createdAt: string
   /** 更新时间 */
   updatedAt: string
+  /** 完成交易数 */
+  completedTransactions: number
+  /** 发布商品数 */
+  publishedItems: number
+  /** 参与拼团数 */
+  joinedGroupBuys: number
 }
 
 /** 修改个人信息请求（所有字段可选，只传需要修改的） */
