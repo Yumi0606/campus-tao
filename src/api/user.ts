@@ -42,4 +42,13 @@ export const userApi = {
   verifyStudent(studentCardUrl: string): Promise<string> {
     return client.post('/api/user/verify-student', null, { params: { studentCardUrl } })
   },
+
+  /**
+   * 根据用户 ID 获取其他用户的公开信息（脱敏，用于私聊等场景）
+   * 后端返回 Result<User>
+   * @param userId 目标用户 ID
+   */
+  getPublicInfo(userId: number): Promise<UserInfo> {
+    return client.get(`/api/user/${userId}`)
+  },
 }

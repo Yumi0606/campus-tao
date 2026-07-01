@@ -1,4 +1,5 @@
 import { messageApi } from '@/api'
+import { userApi } from '@/api'
 import type { ConversationInfo, MessageInfo } from '@/api/types'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
@@ -18,6 +19,8 @@ export function Chat() {
   const [messageText, setMessageText] = useState('')
   const [mobileShowChat, setMobileShowChat] = useState(!!contactId)
   const [loadingConvos, setLoadingConvos] = useState(true)
+  // 新会话：URL 指定了联系人但该联系人不在已有会话列表中
+  const [newContact, setNewContact] = useState<ConversationInfo | null>(null)
 
   // 加载会话列表
   useEffect(() => {
@@ -33,16 +36,54 @@ export function Chat() {
       .finally(() => setLoadingConvos(false))
   }, [])
 
+  // 当 URL 中有 contactId 但该联系人不在已有会话列表中时，获取用户信息构造虚拟联系人
+  useEffect(() => {
+    if (!selectedContactId) {
+      setNewContact(null)
+      return
+    }
+    // 检查是否已在会话列表中
+    const exists = conversations.some((c) => c.contactId === selectedContactId)
+    if (exists) {
+      setNewContact(null)
+      return
+    }
+    // 不在会话列表中，获取用户公开信息
+    userApi.getPublicInfo(selectedContactId)
+      .then((userInfo) => {
+        const virtualContact: ConversationInfo = {
+          contactId: userInfo.userId,
+          nickname: userInfo.nickname || `用户${userInfo.userId}`,
+          avatarUrl: userInfo.avatarUrl || '',
+          lastMessage: '',
+          lastMessageTime: '',
+          unreadCount: 0,
+        }
+        setNewContact(virtualContact)
+        setMobileShowChat(true)
+      })
+      .catch((e: unknown) => {
+        showToast(e instanceof Error ? e.message : '获取用户信息失败', 'error')
+        setNewContact(null)
+      })
+  }, [selectedContactId, conversations])
+
   // 选中联系人时加载消息
   useEffect(() => {
     if (!selectedContactId) return
+    // 新会话（不在已有会话列表中）没有历史消息，跳过加载
+    const exists = conversations.some((c) => c.contactId === selectedContactId)
+    if (!exists) {
+      setMessages([])
+      return
+    }
     messageApi.history(selectedContactId, 1, 100)
       .then((data) => {
         setMessages(data?.list ?? [])
         setMobileShowChat(true)
       })
       .catch((e: unknown) => showToast(e instanceof Error ? e.message : '加载消息失败', 'error'))
-  }, [selectedContactId])
+  }, [selectedContactId, conversations])
 
   // 路由变化时切换联系人
   useEffect(() => {
@@ -54,7 +95,12 @@ export function Chat() {
     }
   }, [contactId])
 
-  const currentContact = conversations.find((c) => c.contactId === selectedContactId)
+  // 合并已有会话和虚拟联系人
+  const allContacts = newContact
+    ? [newContact, ...conversations.filter((c) => c.contactId !== newContact.contactId)]
+    : conversations
+
+  const currentContact = allContacts.find((c) => c.contactId === selectedContactId)
 
   const handleSelectContact = async (id: number) => {
     setSelectedContactId(id)
@@ -86,6 +132,14 @@ export function Chat() {
       })
       setMessages([...messages, newMsg])
       setMessageText('')
+      // 发送消息后刷新会话列表，使虚拟联系人变为真实会话
+      messageApi.conversations()
+        .then((data) => {
+          setConversations(data)
+          // 虚拟联系人已变为真实会话，清除虚拟状态
+          setNewContact(null)
+        })
+        .catch(() => { /* 静默失败，不影响发送体验 */ })
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : '发送失败', 'error')
     }
@@ -114,7 +168,7 @@ export function Chat() {
             </div>
           ) : (
             <div className="divide-y divide-secondary-100">
-              {conversations.map((contact) => (
+              {allContacts.map((contact) => (
                 <button key={contact.contactId}
                   onClick={() => handleSelectContact(contact.contactId)}
                   className={`w-full flex items-center gap-3 p-4 text-left transition-all duration-200 cursor-pointer ${

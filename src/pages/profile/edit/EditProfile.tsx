@@ -2,6 +2,7 @@ import { userApi, fileApi } from '@/api'
 import { useAuth } from '@/components/base/Auth'
 import { useToast } from '@/components/base/Toast'
 import { SafeAvatar, SafeImage } from '@/components/base/FallbackImage'
+import { CAMPUSES } from '@/constants'
 
 export function EditProfile() {
   const { user, logout, refreshUser } = useAuth()
@@ -143,7 +144,7 @@ export function EditProfile() {
                     <label className="block text-sm font-medium text-foreground-700 mb-2">校区</label>
                     <select value={form.campus} onChange={(e) => updateField('campus', e.target.value)}
                       className={inputClass + " cursor-pointer"}>
-                      {['主校区', '东校区', '西校区', '南校区', '北校区'].map(c => <option key={c} value={c}>{c}</option>)}
+                      {CAMPUSES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
